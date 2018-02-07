@@ -1,0 +1,50 @@
+#version 430 core
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_shader_storage_buffer_object : enable
+
+layout (local_size_x = 32) in;
+
+#define BUFFER_RAYS 4
+#define BUFFER_POSITIONS 5
+#define BUFFER_BVH 6
+#define BUFFER_RES_COORDS 7
+#define BUFFER_RES_TIDX 8
+
+#define RAYCAST_FORWARD 1
+#define RAYCAST_BACKWARD 1
+
+struct Ray
+{
+	vec3 o;
+	vec3 d;
+};
+
+layout(location = 1) uniform uint workOffset;
+layout(location = 2) uniform uint bvhCount;
+layout(std430, binding = BUFFER_RAYS) readonly buffer orgBuffer { Ray rays[]; };
+layout(std430, binding = BUFFER_POSITIONS) readonly buffer samplesBuffer { vec3 positions[]; };
+layout(std430, binding = BUFFER_BVH) readonly buffer meshDivsBuffer { BVH bvhs[]; };
+layout(std430, binding = BUFFER_RES_COORDS) writeonly buffer rCoordBuffer { vec4 r_coords[]; };
+layout(std430, binding = BUFFER_RES_TIDX) writeonly buffer rTidxBuffer { uint r_tidx[]; }
+
+void main()
+{
+	uint gid = gl_GlobalInvocationID.x + workOffset;
+	Ray ray = rays[gid];
+	vec3 o = ray.o;
+	vec3 d = ray.d;
+
+	uint tidx = 4294967295;
+	vec3 bcoord = vec3(0, 0, 0);
+	float t = FLT_MAX;
+
+#if RAYCAST_FORWARD
+	t = min(t, raycastBVH(o, d, t, tidx, bcoord));
+#endif
+#if RAYCAST_BACKWARD
+	t = min(t, raycastBVH(o, -d, t, tidx, bcoord));
+#endif
+
+	r_coords[gid] = vec4(t, bcoord.x, bcoord.y, bcoord.z);
+	r_tidx[gid] = tidx;
+}

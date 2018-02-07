@@ -1,0 +1,203 @@
+#version 430 core
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_shader_storage_buffer_object : enable
+
+layout (local_size_x = 32) in;
+
+#define BUFFER_PARAMS 3
+#define BUFFER_RAYS 4
+#define BUFFER_SAMPLES 5
+#define BUFFER_VERTICES 6
+#define BUFFER_MESHDIVS 7
+#define BUFFER_RESULTS 8
+
+#define FLT_MAX 3.402823466e+38
+
+struct Params
+{
+	uint sampleCount; // Number of rays to sample
+	uint meshDivsCount;
+	float minDistance;
+	float maxDistance;
+	vec3 divs;
+	vec3 aabbMin;
+	vec3 aabbMax;
+	vec3 aabbDivSize;
+};
+
+struct Ray
+{
+	vec3 o;
+	vec3 d;
+};
+
+struct MeshDiv
+{
+	uint start;
+	uint end;
+};
+
+layout(location = 1) uniform uint workOffset;
+layout(std430, binding = BUFFER_PARAMS) readonly buffer paramsBuffer { Params params; };
+layout(std430, binding = BUFFER_RAYS) readonly buffer orgBuffer { Ray rays[]; };
+layout(std430, binding = BUFFER_SAMPLES) readonly buffer samplesBuffer { vec3 samples[]; };
+layout(std430, binding = BUFFER_VERTICES) readonly buffer trisBuffer { vec3 vertices[]; };
+layout(std430, binding = BUFFER_MESHDIVS) readonly buffer meshDivsBuffer { MeshDiv divisions[]; };
+layout(std430, binding = BUFFER_RESULTS) writeonly buffer resultBuffer { float results[]; };
+
+float RayAABB(vec3 o, vec3 d, vec3 c, vec3 s)
+{
+	vec3 mins = c - s;
+	vec3 maxs = c + s;
+	vec3 dabs = abs(d);
+	if (dabs.x < 0.0001) d.x = 0.0001;
+	if (dabs.y < 0.0001) d.y = 0.0001;
+	if (dabs.z < 0.0001) d.z = 0.0001;
+	vec3 t1 = (mins - o) / d;
+	vec3 t2 = (maxs - o) / d;
+	vec3 tmin = min(t1, t2);
+	vec3 tmax = max(t1, t2);
+	float a = max(tmin.x, max(tmin.y, tmin.z));
+	float b = min(tmax.x, min(tmax.y, tmax.z));
+	return (b >= 0 && a <= b) ? a : FLT_MAX;
+}
+
+vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c)
+{
+	vec3 v0 = b - a;
+	vec3 v1 = c - a;
+	vec3 v2 = p - a;
+	float d00 = dot(v0, v0);
+	float d01 = dot(v0, v1);
+	float d11 = dot(v1, v1);
+	float d20 = dot(v2, v0);
+	float d21 = dot(v2, v1);
+	float denom = d00 * d11 - d01 * d01;
+	if (abs(denom) < 0.0001) return vec3(-1,-1,-1);
+	float y = (d11 * d20 - d01 * d21) / denom;
+	float z = (d00 * d21 - d01 * d20) / denom;
+	return vec3(1.0 - y - z, y, z);
+}
+
+float raycast(vec3 o, vec3 d, vec3 a, vec3 b, vec3 c)
+{
+	vec3 n = normalize(cross(b - a, c - a));
+	float nd = dot(d, n);
+	if (abs(nd) > 0.0001f)
+	{
+		float pn = dot(o, n);
+		float t = (dot(a, n) - pn) / nd;
+		if (t >= 0.0f)
+		{
+			vec3 p = o + d * t;
+			vec3 b = barycentric(p, a, b, c);
+			if (b.x >= 0 && b.x <= 1 && 
+				b.y >= 0 && b.y <= 1 && 
+				b.z >= 0 && b.z <= 1)
+			{
+				return t;
+			}
+		}
+	}
+	return -1;
+}
+
+float raycastRange(vec3 o, vec3 d, uint start, uint end, float mindist)
+{
+	float mint = FLT_MAX;
+
+	for (uint tidx = start; tidx < end; tidx += 3)
+	{
+		vec3 v0 = vertices[tidx + 0];
+		vec3 v1 = vertices[tidx + 1];
+		vec3 v2 = vertices[tidx + 2];
+		float t = raycast(o, d, v0, v1, v2);
+		if (t >= mindist)
+		{
+			mint = min(t, mint);
+		}
+	}
+
+	return (mint != FLT_MAX) ? mint : -1;
+}
+
+uint getDivIndex(ivec3 xyz)
+{
+	if (xyz.x < 0 || xyz.x >= int(params.divs.x) ||
+		xyz.y < 0 || xyz.y >= int(params.divs.y) ||
+		xyz.z < 0 || xyz.z >= int(params.divs.z)) return -1;
+	int w = int(params.divs.x);
+	int h = int(params.divs.y);
+	return uint(((xyz.z * h) + xyz.y) * w + xyz.x);
+}
+
+ivec3 findDivision(vec3 p)
+{
+	vec3 coords = floor((p - params.aabbMin) / params.aabbDivSize);
+	return ivec3(int(coords.x), int(coords.y), int(coords.z));
+}
+
+ivec3 findAdjacentDivision(ivec3 xyz, vec3 o, vec3 d)
+{
+	if (d.x == 0) d.x = 1e-6;
+	if (d.y == 0) d.y = 1e-6;
+	if (d.z == 0) d.z = 1e-6;
+	vec3 p0 = floor((o - params.aabbMin) / params.aabbDivSize);
+	vec3 aabbCenter = p0 + 0.5 * params.aabbDivSize;
+	vec3 diff = (sign(d) * 0.5 * params.aabbDivSize - (o - aabbCenter)) / d;
+	vec3 diffabs = abs(diff);
+	if (diffabs.x <= diffabs.y && diffabs.x <= diffabs.z) p0.x += diff.x > 0 ? 1 : -1;
+	if (diffabs.y <= diffabs.x && diffabs.y <= diffabs.z) p0.y += diff.y > 0 ? 1 : -1;
+	if (diffabs.z <= diffabs.x && diffabs.z <= diffabs.y) p0.z += diff.z > 0 ? 1 : -1;
+	return ivec3(int(p0.x), int(p0.y), int(p0.z));
+}
+
+void main()
+{
+	uint gid = gl_GlobalInvocationID.x + workOffset;
+
+	Ray ray = rays[gid];
+	vec3 o = ray.o;
+	vec3 d = ray.d;
+
+	vec3 up = abs(d.y) < 0.99 ? vec3(0,1,0) : vec3(0,0,-1);
+	vec3 tx = normalize(cross(up, d));
+	vec3 ty = cross(d, tx);
+
+	float rAcc = 0;
+	float rCount = 0;
+
+	uint dividxOrigin = getDivIndex(findDivision(o));
+	//dividxOrigin = 0;
+
+	for (uint sidx = 0; sidx < params.sampleCount; ++sidx)
+	{
+		vec3 rs = samples[sidx];
+		vec3 sampleDir = normalize(tx * rs.x + ty * rs.y + d * rs.z);
+
+		float tmin = FLT_MAX;
+
+		uint dividx = dividxOrigin;
+		//while (dividx != -1)
+		if (dividx != -1)
+		{
+			MeshDiv division = divisions[dividx];
+			float t = raycastRange(o, sampleDir, division.start, division.end, params.minDistance);
+			if (t > 0.0)
+			{
+				tmin = min(t, tmin);
+				//break;
+			}
+			//dividx = findAdjacentDivision()
+		}
+
+		if (tmin != FLT_MAX)
+		{
+			rAcc += min(tmin, params.maxDistance);
+			rCount += rs.z;
+		}
+	}
+
+	results[gid] = rCount > 0 ? rAcc / rCount : 0;
+	//results[gid] = rAcc;
+}

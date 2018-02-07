@@ -75,14 +75,27 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>D:\Code\Fornos\3rdParty\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Code\Fornos\3rdParty\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy /c /y /e "$(ProjectDir)shaders" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -91,10 +104,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>D:\Code\Fornos\3rdParty\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -104,13 +120,48 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Code\Fornos\3rdParty\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /c /y /e "$(ProjectDir)shaders" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\3rdParty\glad\glad.c" />
+    <ClCompile Include="..\3rdParty\imgui\addons\imguifilesystem\imguifilesystem.cpp" />
+    <ClCompile Include="..\3rdParty\imgui\imgui.cpp" />
+    <ClCompile Include="..\3rdParty\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\3rdParty\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\3rdParty\imgui\imgui_impl_glfw_gl3.cpp" />
+    <ClCompile Include="bvh.cpp" />
+    <ClCompile Include="compute.cpp" />
+    <ClCompile Include="fornos.cpp" />
+    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="meshmapping.cpp" />
+    <ClCompile Include="solver_normals.cpp" />
+    <ClCompile Include="solver_thickness.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bvh.h" />
+    <ClInclude Include="compute.h" />
+    <ClInclude Include="math.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="meshmapping.h" />
+    <ClInclude Include="solver_normals.h" />
+    <ClInclude Include="solver_thickness.h" />
+    <ClInclude Include="stb_image_write.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="shaders\thickness.comp">
+    </Content>
+    <Content Include="shaders\normals.comp">
+    </Content>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
