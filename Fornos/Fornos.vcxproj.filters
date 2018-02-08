@@ -80,5 +80,8 @@
     <ClInclude Include="meshmapping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="timing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

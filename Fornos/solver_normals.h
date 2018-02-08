@@ -5,8 +5,7 @@
 #include <memory>
 
 struct CompressedMapUV;
-class Mesh;
-class BVH;
+class MeshMapping;
 
 class NormalsSolver
 {
@@ -21,7 +20,7 @@ public:
 	NormalsSolver(const Params &params) : _params(params) {}
 	const Params& params() const { return _params; }
 
-	void init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<const Mesh> mesh, std::shared_ptr<const BVH> rootBVH);
+	void init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<MeshMapping> mesh);
 	bool runStep();
 	float* getResults();
 
@@ -37,16 +36,12 @@ private:
 	size_t _workCount;
 	size_t _mapWidth;
 	size_t _mapHeight;
-	size_t _bvhCount;
 
 	GLuint _normalsProgram;
-	GLuint _raysBO;
-	GLuint _positionsBO;
-	GLuint _normalsBO;
-	GLuint _bvhBO;
-	GLuint _resultsBO;
+	std::unique_ptr<ComputeBuffer<float> > _resultsCB;
 
 	std::shared_ptr<const CompressedMapUV> _uvMap;
+	std::shared_ptr<MeshMapping> _meshMapping;
 };
 
 class NormalsTask : public FornosTask

@@ -4,21 +4,34 @@
 #include <cassert>
 
 static const size_t k_groupSize = 32;
-static const size_t k_workPerFrame = 8192;
+static const size_t k_workPerFrame = 16384;
 
 namespace
 {
-	std::vector<Ray> computeRays(const CompressedMapUV *map)
+	std::vector<Pix_GPUData> computePixels(const CompressedMapUV *map)
 	{
 		const size_t count = map->positions.size();
-		std::vector<Ray> rays(count);
+		std::vector<Pix_GPUData> pixels(count);
 		for (size_t i = 0; i < count; ++i)
 		{
-			const Vector3 n = map->normals[i];
-			const Vector3 o = map->positions[i];
+			auto &pix = pixels[i];
+			pix.p = map->positions[i];
+			pix.n = map->normals[i];
 		}
+		return pixels;
+	}
 
-		return rays;
+	std::vector<PixT_GPUData> computePixelsT(const CompressedMapUV *map)
+	{
+		const size_t count = map->positions.size();
+		std::vector<PixT_GPUData> pixels(count);
+		for (size_t i = 0; i < count; ++i)
+		{
+			auto &pix = pixels[i];
+			pix.t = map->tangents[i];
+			pix.b = map->bitangents[i];
+		}
+		return pixels;
 	}
 
 	void fillMeshData(
@@ -28,6 +41,32 @@ namespace
 		std::vector<Vector4> &positions,
 		std::vector<Vector4> &normals)
 	{
+		if (bvh.children.empty() &&
+			bvh.triangles.empty())
+		{
+			// Children node without triangles? Skip it
+			return;
+		}
+
+#if 0
+		if (!bvh.children.empty())
+		{
+			// If one of the children does not contain any triangles
+			// we can skip this node completely as it is an extry AABB test
+			// for nothing
+			if (bvh.children[0].subtreeTriangleCount > 0 && bvh.children[1].subtreeTriangleCount == 0)
+			{
+				fillMeshData(mesh, bvh.children[0], bvhs, positions, normals);
+				return;
+			}
+			if (bvh.children[1].subtreeTriangleCount > 0 && bvh.children[0].subtreeTriangleCount == 0)
+			{
+				fillMeshData(mesh, bvh.children[1], bvhs, positions, normals);
+				return;
+			}
+		}
+#endif
+
 		bvhs.emplace_back(BVHGPUData());
 		BVHGPUData &d = bvhs.back();
 		d.o = bvh.aabb.center;
@@ -61,22 +100,23 @@ namespace
 	{
 		GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
 
-		std::vector<std::string> shaders;
+		std::vector<const char *> shaders;
 
 		for (auto path : paths)
 		{
 			std::ifstream ifs(path);
 			std::string src((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-			shaders.emplace_back(src);
+			char *shader = new char[src.size() + 1];
+			strcpy_s(shader, src.size() + 1, src.c_str());
+			shaders.emplace_back(shader);
 		}
 
-		std::vector<const char *> strs;
-		for (auto s : shaders) strs.emplace_back(s.c_str());
-
-		glShaderSource(shader, 1, &strs[0], nullptr);
+		glShaderSource(shader, 1, &shaders[0], nullptr);
 		glCompileShader(shader);
 
-#if 1
+		for (auto s : shaders) delete[] s;
+
+#if 0
 		{
 			GLint compiled;
 			glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
@@ -107,12 +147,19 @@ void MeshMapping::init
 	std::shared_ptr<const BVH> rootBVH
 )
 {
-	// Rays data
+	// Pixels data
 	{
-		auto rays = computeRays(map.get());
-		std::vector<RayGPUData> raysData(rays.begin(), rays.end());
-		_rays = std::unique_ptr<ComputeBuffer<RayGPUData> >(
-			new ComputeBuffer<RayGPUData>(&raysData[0], raysData.size(), GL_STATIC_DRAW));
+		auto pixels = computePixels(map.get());
+		_pixels = std::unique_ptr<ComputeBuffer<Pix_GPUData> >(
+			new ComputeBuffer<Pix_GPUData>(&pixels[0], pixels.size(), GL_STATIC_DRAW));
+
+		// Compute tangent data
+		if (map->tangents.size() > 0)
+		{
+			auto pixelst = computePixelsT(map.get());
+			_pixelst = std::unique_ptr<ComputeBuffer<PixT_GPUData> >(
+				new ComputeBuffer<PixT_GPUData>(&pixelst[0], pixelst.size(), GL_STATIC_DRAW));
+		}
 	}
 
 	// Mesh data
@@ -143,8 +190,7 @@ void MeshMapping::init
 	{
 		_program = CreateComputeProgram
 		({
-			"D:\\Code\\Fornos\\Fornos\\shaders\\raycast.comp",
-			"D:\\Code\\Fornos\\Fornos\\shaders\\meshmapping.comp",
+			"D:\\Code\\Fornos\\Fornos\\shaders\\meshmapping_.comp"
 		});
 	}
 
@@ -158,19 +204,29 @@ bool MeshMapping::runStep()
 	const size_t work = workLeft < k_workPerFrame ? workLeft : k_workPerFrame;
 	assert(work % k_groupSize == 0);
 
+	if (_workOffset == 0) _timing.begin();
+
 	glUseProgram(_program);
 
 	glUniform1ui(1, (GLuint)_workOffset);
-	glUniform1ui(2, (GLuint)_bvh->size());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _rays->bo());
+	glUniform1ui(2, (GLuint)_coords->size());
+	glUniform1ui(3, (GLuint)_bvh->size());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _pixels->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _meshPositions->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, _meshNormals->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, _bvh->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _coords->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _tidx->bo());
 
 	glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
 
 	_workOffset += work;
+
+	if (_workOffset == _workCount)
+	{
+		_timing.end();
+		std::cout << "MeshMapping took " << _timing.elapsedSeconds() << " seconds." << std::endl;
+	}
+
 	return _workOffset >= _workCount;
 }
 
@@ -191,6 +247,7 @@ bool MeshMappingTask::runStep()
 
 void MeshMappingTask::finish()
 {
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 float MeshMappingTask::progress() const

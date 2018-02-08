@@ -72,6 +72,8 @@ public:
 		glGenBuffers(1, &_bo);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bo);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T) * count, nullptr, usage);
+		GLuint zero = 0;
+		glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R8UI, GL_RED, GL_UNSIGNED_BYTE, &zero);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	}
 
@@ -87,7 +89,7 @@ public:
 	T* readData() const
 	{
 		T *data = new T[_size];
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _resultsBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bo);
 		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(T) * _size, data);
 		return data;
 	}

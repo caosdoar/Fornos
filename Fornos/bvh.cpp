@@ -61,6 +61,7 @@ void binaryDivisionBVH_v2(const Mesh *mesh, const size_t maxTriangleCount, const
 	if (parent.triangles.size() <= maxTriangleCount ||
 		currentDepth >= maxTreeDepth)
 	{
+		parent.subtreeTriangleCount = parent.triangles.size();
 		return;
 	}
 
@@ -134,6 +135,10 @@ void binaryDivisionBVH_v2(const Mesh *mesh, const size_t maxTriangleCount, const
 	parent.triangles.clear();
 	binaryDivisionBVH_v2(mesh, maxTriangleCount, maxTreeDepth, parent.children[0], currentDepth + 1);
 	binaryDivisionBVH_v2(mesh, maxTriangleCount, maxTreeDepth, parent.children[1], currentDepth + 1);
+
+	parent.subtreeTriangleCount =
+		parent.children[0].subtreeTriangleCount +
+		parent.children[1].subtreeTriangleCount;
 }
 
 BVH* BVH::createBinary(const Mesh *mesh, const size_t maxTriangleCount, const size_t maxTreeDepth)

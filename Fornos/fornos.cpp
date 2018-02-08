@@ -13,6 +13,7 @@
 #include "bvh.h"
 #include "compute.h"
 #include "mesh.h"
+#include "meshmapping.h"
 #include "solver_thickness.h"
 #include "solver_normals.h"
 
@@ -639,6 +640,9 @@ void FornosUI::startBaking()
 
 	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), 256, 16));
 
+	std::shared_ptr<MeshMapping> meshMapping(new MeshMapping());
+	meshMapping->init(compressedMap, hiPolyMesh, rootBVH);
+
 	if (_normals_enabled)
 	{
 		NormalsSolver::Params params;
@@ -646,7 +650,7 @@ void FornosUI::startBaking()
 		params.rayInwards = _normals_rayInwards;
 		params.tangentSpace = _normals_tangentSpace;
 		std::unique_ptr<NormalsSolver> normalsSolver(new NormalsSolver(params));
-		normalsSolver->init(compressedMap, hiPolyMesh, rootBVH);
+		normalsSolver->init(compressedMap, meshMapping);
 		tasks.emplace_back(new NormalsTask(std::move(normalsSolver), _normals_outputPath.c_str()));
 	}
 
@@ -657,9 +661,11 @@ void FornosUI::startBaking()
 		params.minDistance = _thickness_minDistance;
 		params.maxDistance = _thickness_maxDistance;
 		std::unique_ptr<ThicknessSolver> thicknessSolver(new ThicknessSolver(params));
-		thicknessSolver->init(compressedMap, hiPolyMesh, rootBVH);
+		thicknessSolver->init(compressedMap, meshMapping);
 		tasks.emplace_back(new ThicknessTask(std::move(thicknessSolver), _thickness_outputPath.c_str()));
 	}
+
+	tasks.emplace_back(new MeshMappingTask(meshMapping));
 }
 
 int main(int argc, char *argv[])
