@@ -8,8 +8,8 @@
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-static const size_t k_groupSize = 32;
-static const size_t k_workPerFrame = 8192;
+static const size_t k_groupSize = 64;
+static const size_t k_workPerFrame = 1024 * 128;
 
 namespace
 {

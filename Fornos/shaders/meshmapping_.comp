@@ -2,7 +2,7 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_shader_storage_buffer_object : enable
 
-layout (local_size_x = 32) in;
+layout (local_size_x = 64) in;
 
 #define BUFFER_RAYS 4
 #define BUFFER_POSITIONS 5
@@ -23,13 +23,18 @@ struct Pix
 
 struct BVH
 {
-	vec3 c; // Center
-	vec3 s; // Half size
-	float _pad;
+	float aabbMinX; float aabbMinY; float aabbMinZ;
+	float aabbMaxX; float aabbMaxY; float aabbMaxZ;
 	uint start;
 	uint end;
-	uint left; // Index to left division
-	uint right; // Index to right division
+	uint jump; // Index to the next BVH if we skip this subtree
+};
+
+struct V3
+{
+	float x;
+	float y;
+	float z;
 };
 
 layout(location = 1) uniform uint workOffset;
@@ -41,10 +46,8 @@ layout(std430, binding = BUFFER_BVH) readonly buffer bvhBuffer { BVH bvhs[]; };
 layout(std430, binding = BUFFER_RES_COORDS) writeonly buffer rCoordBuffer { vec4 r_coords[]; };
 layout(std430, binding = BUFFER_RES_TIDX) writeonly buffer rTidxBuffer { uint r_tidx[]; };
 
-float RayAABB(vec3 o, vec3 d, vec3 c, vec3 s)
+float RayAABB(vec3 o, vec3 d, vec3 mins, vec3 maxs)
 {
-	vec3 mins = c - s;
-	vec3 maxs = c + s;
 	vec3 dabs = abs(d);
 	if (dabs.x < 0.0001) d.x = 0.0001;
 	if (dabs.y < 0.0001) d.y = 0.0001;
@@ -124,7 +127,9 @@ float raycastBVH(vec3 o, vec3 d, float mint, in out uint o_idx, in out vec3 o_bc
 	while (i < bvhCount)
 	{
 		BVH bvh = bvhs[i];
-		float distAABB = RayAABB(o, d, bvh.c, bvh.s);
+		vec3 aabbMin = vec3(bvh.aabbMinX, bvh.aabbMinY, bvh.aabbMinZ);
+		vec3 aabbMax = vec3(bvh.aabbMaxX, bvh.aabbMaxY, bvh.aabbMaxZ);
+		float distAABB = RayAABB(o, d, aabbMin, aabbMax);
 		if (distAABB < mint)
 		//if (distAABB != FLT_MAX)
 		{
@@ -141,7 +146,7 @@ float raycastBVH(vec3 o, vec3 d, float mint, in out uint o_idx, in out vec3 o_bc
 		}
 		else
 		{
-			i = bvh.right; // Jump forward
+			i = bvh.jump;
 		}
 	}
 

@@ -191,9 +191,9 @@ struct RayGPUData
 
 struct BVHGPUData
 {
-	Vector3 o; float _pad0;
-	Vector3 s; float _pad1;
+	Vector3 aabbMin;
+	Vector3 aabbMax;
 	uint32_t start, end;
-	uint32_t left, right;
-	BVHGPUData() : o(), s(), start(0), end(0), left(-1), right(-1) {}
+	uint32_t jump;
+	BVHGPUData() : aabbMin(), aabbMax(), start(0), end(0), jump(0) {}
 };

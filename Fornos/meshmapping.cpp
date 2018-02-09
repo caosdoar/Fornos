@@ -3,8 +3,8 @@
 #include "mesh.h"
 #include <cassert>
 
-static const size_t k_groupSize = 32;
-static const size_t k_workPerFrame = 16384;
+static const size_t k_groupSize = 64;
+static const size_t k_workPerFrame = 1024 * 128;
 
 namespace
 {
@@ -48,7 +48,7 @@ namespace
 			return;
 		}
 
-#if 0
+#if 1
 		if (!bvh.children.empty())
 		{
 			// If one of the children does not contain any triangles
@@ -69,8 +69,8 @@ namespace
 
 		bvhs.emplace_back(BVHGPUData());
 		BVHGPUData &d = bvhs.back();
-		d.o = bvh.aabb.center;
-		d.s = bvh.aabb.size;
+		d.aabbMin = bvh.aabb.center - bvh.aabb.size;
+		d.aabbMax = bvh.aabb.center + bvh.aabb.size;
 		d.start = (uint32_t)positions.size();
 		for (uint32_t tidx : bvh.triangles)
 		{
@@ -78,9 +78,12 @@ namespace
 			const auto &v0 = mesh->vertices[tri.vertexIndex0];
 			const auto &v1 = mesh->vertices[tri.vertexIndex1];
 			const auto &v2 = mesh->vertices[tri.vertexIndex2];
-			positions.push_back(mesh->positions[v0.positionIndex]);
-			positions.push_back(mesh->positions[v1.positionIndex]);
-			positions.push_back(mesh->positions[v2.positionIndex]);
+			const auto p0 = mesh->positions[v0.positionIndex];
+			const auto p1 = mesh->positions[v1.positionIndex];
+			const auto p2 = mesh->positions[v2.positionIndex];
+			positions.push_back(p0);
+			positions.push_back(p1);
+			positions.push_back(p2);
 			normals.push_back(mesh->normals[v0.normalIndex]);
 			normals.push_back(mesh->normals[v1.normalIndex]);
 			normals.push_back(mesh->normals[v2.normalIndex]);
@@ -93,7 +96,7 @@ namespace
 			fillMeshData(mesh, bvh.children[0], bvhs, positions, normals);
 			fillMeshData(mesh, bvh.children[1], bvhs, positions, normals);
 		}
-		bvhs[index].right = (uint32_t)bvhs.size();
+		bvhs[index].jump = (uint32_t)bvhs.size();
 	}
 
 	GLuint CreateComputeProgram(const std::vector<const char *> &paths)
@@ -116,7 +119,7 @@ namespace
 
 		for (auto s : shaders) delete[] s;
 
-#if 0
+#if 1
 		{
 			GLint compiled;
 			glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);

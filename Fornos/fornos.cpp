@@ -638,7 +638,7 @@ void FornosUI::startBaking()
 		return;
 	}
 
-	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), 256, 16));
+	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), 32, 128));
 
 	std::shared_ptr<MeshMapping> meshMapping(new MeshMapping());
 	meshMapping->init(compressedMap, hiPolyMesh, rootBVH);
@@ -698,6 +698,8 @@ int main(int argc, char *argv[])
 
 		if (!tasks.empty())
 		{
+			glfwSwapInterval(0);
+
 			auto task = tasks.back();
 			if (task->runStep())
 			{
@@ -705,6 +707,10 @@ int main(int argc, char *argv[])
 				delete task;
 				tasks.pop_back();
 			}
+		}
+		else
+		{
+			glfwSwapInterval(1);
 		}
 
 		ImGui_ImplGlfwGL3_NewFrame();

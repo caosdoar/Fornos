@@ -31,13 +31,11 @@ struct PixelT
 
 struct BVH
 {
-	vec3 c; // Center
-	vec3 s; // Half size
-	float _pad;
+	float aabbMinX; float aabbMinY; float aabbMinZ;
+	float aabbMaxX; float aabbMaxY; float aabbMaxZ;
 	uint start;
 	uint end;
-	uint left; // Index to left division
-	uint right; // Index to right division
+	uint jump; // Index to the next BVH if we skip this subtree
 };
 
 layout(location = 1) uniform uint workOffset;

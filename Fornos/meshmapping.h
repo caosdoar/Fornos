@@ -39,8 +39,8 @@ public:
 	inline const ComputeBuffer<uint32_t>* coords_tidx() const { return _tidx.get(); }
 	inline const ComputeBuffer<Pix_GPUData>* pixels() const { return _pixels.get(); }
 	inline const ComputeBuffer<PixT_GPUData>* pixelst() const { return _pixelst.get(); }
-	inline const ComputeBuffer<Vector4>* meshPositions() const { return _meshPositions.get(); }
-	inline const ComputeBuffer<Vector4>* meshNormals() const { return _meshNormals.get(); }
+	inline const ComputeBuffer<Vector3>* meshPositions() const { return _meshPositions.get(); }
+	inline const ComputeBuffer<Vector3>* meshNormals() const { return _meshNormals.get(); }
 	inline const ComputeBuffer<BVHGPUData>* meshBVH() const { return _bvh.get(); }
 
 
@@ -52,8 +52,8 @@ private:
 	std::unique_ptr<ComputeBuffer<uint32_t> > _tidx;
 	std::unique_ptr<ComputeBuffer<Pix_GPUData> > _pixels;
 	std::unique_ptr<ComputeBuffer<PixT_GPUData> > _pixelst;
-	std::unique_ptr<ComputeBuffer<Vector4> > _meshPositions;
-	std::unique_ptr<ComputeBuffer<Vector4> > _meshNormals;
+	std::unique_ptr<ComputeBuffer<Vector3> > _meshPositions;
+	std::unique_ptr<ComputeBuffer<Vector3> > _meshNormals;
 	std::unique_ptr<ComputeBuffer<BVHGPUData> > _bvh;
 	GLuint _program;
 
