@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <random>
 
 #define PI 3.14159265
 #define PI_INV 0.318309886
@@ -295,9 +296,26 @@ inline float radicalInverseVdC(uint32_t bits)
 	return float(bits) * 2.3283064365386963e-10f; // / 0x100000000
 }
 
+inline uint32_t reverseBits(uint32_t bits)
+{
+	bits = (bits << 16u) | (bits >> 16u);
+	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+	return bits;
+}
+
 inline Vector2 hammersley(uint32_t i, uint32_t N)
 {
 	return Vector2((float)i / (float)N, radicalInverseVdC(i));
+}
+
+inline Vector2 hammersley(uint32_t i, uint32_t N, uint32_t randX, uint32_t randY)
+{
+	const float x = float(i) / float(N) + float(randX & 0xffff) / float(1 << 16);
+	const float y = float(reverseBits(i) ^ randY) * 2.3283064365386963e-10f;
+	return Vector2(x - long(x), y);
 }
 
 /**
@@ -314,5 +332,26 @@ inline void computeSamplesImportanceCosDir(const size_t count, Vector3 *o_basis)
 		const float phi = (float)(2.0 * PI) * u.y;
 		const Vector3 v(r * std::cosf(phi), r * std::sinf(phi), std::sqrt(1.0f - u.x));
 		o_basis[i] = v;
+	}
+}
+
+inline void computeSamplesImportanceCosDir(const size_t sampleCount, const size_t permCount, Vector3 *o_basis)
+{
+	std::random_device rd;
+	std::mt19937 re(rd());
+	std::uniform_int_distribution<uint32_t> ru;
+
+	for (size_t j = 0; j < permCount; ++j)
+	{
+		const uint32_t randX = ru(re);
+		const uint32_t randY = ru(re);
+		for (size_t i = 0; i < sampleCount; ++i)
+		{
+			const Vector2 u = hammersley((uint32_t)i, (uint32_t)sampleCount, randX, randY);
+			const float r = std::sqrtf(u.x);
+			const float phi = (float)(2.0 * PI) * u.y;
+			const Vector3 v(r * std::cosf(phi), r * std::sinf(phi), std::sqrt(1.0f - u.x));
+			o_basis[i + j * sampleCount] = v;
+		}
 	}
 }

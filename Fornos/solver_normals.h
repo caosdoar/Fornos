@@ -12,8 +12,6 @@ class NormalsSolver
 public:
 	struct Params
 	{
-		float rayOffset;
-		bool rayInwards;
 		bool tangentSpace;
 	};
 

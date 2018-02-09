@@ -14,8 +14,9 @@
 #include "compute.h"
 #include "mesh.h"
 #include "meshmapping.h"
-#include "solver_thickness.h"
+#include "solver_ao.h"
 #include "solver_normals.h"
+#include "solver_thickness.h"
 
 static int windowWidth = 640;
 static int windowHeight = 480;
@@ -133,8 +134,9 @@ public:
 protected:
 	void renderParameters();
 	void renderParamsShared();
-	void renderParamsSolverThickness();
 	void renderParamsSolverNormals();
+	void renderParamsSolverAO();
+	void renderParamsSolverThickness();
 	void renderWorkInProgress();
 	void renderErrors();
 	void startBaking();
@@ -154,21 +156,27 @@ private:
 	int _texWidth;
 	int _texHeight;
 
+	// Normals solver data
+	bool _normals_enabled;
+	bool _normals_tangentSpace;
+	std::string _normals_outputPath;
+	ImGuiFs::Dialog _normals_outputDialog;
+
+	// AO solver data
+	bool _ao_enabled;
+	int _ao_sampleCount;
+	float _ao_minDistance;
+	float _ao_maxDistance;
+	std::string _ao_outputPath;
+	ImGuiFs::Dialog _ao_outputDialog;
+
 	// Thickness solver data
 	bool _thickness_enabled;
 	int _thickness_sampleCount;
 	float _thickness_minDistance;
 	float _thickness_maxDistance;
 	std::string _thickness_outputPath;
-	ImGuiFs::Dialog _thicknessOutputDialog;
-
-	// Normals solver data
-	bool _normals_enabled;
-	float _normals_rayOffset;
-	bool _normals_rayInwards;
-	bool _normals_tangentSpace;
-	std::string _normals_outputPath;
-	ImGuiFs::Dialog _normals_outputDialog;
+	ImGuiFs::Dialog _thickness_outputDialog;
 
 	// Aux
 	char _strBuff[2048];
@@ -182,13 +190,16 @@ FornosUI::FornosUI()
 	, _hiPolyNormal(NormalImport::Import)
 	, _texWidth(1024)
 	, _texHeight(1024)
-	, _thickness_enabled(true)
+	, _thickness_enabled(false)
 	, _thickness_sampleCount(128)
 	, _thickness_minDistance(0.1f)
 	, _thickness_maxDistance(1.0f)
-	, _normals_rayOffset(0.1f)
-	, _normals_rayInwards(true)
+	, _normals_enabled(false)
 	, _normals_tangentSpace(true)
+	, _ao_enabled(false)
+	, _ao_sampleCount(128)
+	, _ao_minDistance(0.1f)
+	, _ao_maxDistance(1.0f)
 {
 	memset(_strBuff, 0, 2048);
 }
@@ -214,10 +225,14 @@ void FornosUI::renderParameters()
 		ImGuiWindowFlags_NoMove);
 
 	renderParamsShared();
-	renderParamsSolverThickness();
 	renderParamsSolverNormals();
+	renderParamsSolverAO();
+	renderParamsSolverThickness();
 
-	bool readyToBake = _thickness_enabled || _normals_enabled;
+	const bool readyToBake = 
+		(_thickness_enabled && !_thickness_outputPath.empty()) || 
+		(_normals_enabled && !_normals_outputPath.empty()) ||
+		(_ao_enabled && !_ao_outputPath.empty());
 
 	if (!readyToBake)
 	{
@@ -404,7 +419,7 @@ void FornosUI::renderParamsSolverThickness()
 			}
 			ImGui::SameLine();
 			const bool pressed = ImGui::Button("...##thicknessOutput");
-			const char *path = _thicknessOutputDialog.chooseFileDialog(
+			const char *path = _thickness_outputDialog.chooseFileDialog(
 				pressed,
 				nullptr,
 				".png",
@@ -460,6 +475,93 @@ void FornosUI::renderParamsSolverThickness()
 	ImGui::PopID();
 }
 
+void FornosUI::renderParamsSolverAO()
+{
+	ImGui::PushID("AmbientOcclusionSolver");
+
+	bool aoExpanded = ImGui::CollapsingHeader("Ambient Occlusion", ImGuiTreeNodeFlags_AllowItemOverlap);
+	ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+	ImGui::Checkbox("", &_ao_enabled);
+	if (aoExpanded)
+	{
+		if (!_ao_enabled)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		}
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 130);
+
+		// Output
+		{
+			ImGui::Text("Output");
+			ImGui::SameLine();
+			ShowHelpMarker("Ambient occlusion image output file.");
+			ImGui::NextColumn();
+			strncpy_s(_strBuff, _ao_outputPath.c_str(), 2048);
+			if (ImGui::InputText("##aoOutput", _strBuff, 2048))
+			{
+				_ao_outputPath = std::string(_strBuff);
+			}
+			ImGui::SameLine();
+			const bool pressed = ImGui::Button("...##aoOutput");
+			const char *path = _ao_outputDialog.chooseFileDialog(
+				pressed,
+				nullptr,
+				".png",
+				"Ambient Occlusion Image",
+				ImVec2((float)windowWidth, (float)windowHeight),
+				ImVec2(0, 0));
+			if (strlen(path) != 0)
+			{
+				_ao_outputPath = std::string(path);
+			}
+			ImGui::NextColumn();
+		}
+
+		// Sample count
+		{
+			ImGui::Text("Sample count");
+			ImGui::SameLine();
+			ShowHelpMarker("Number of samples.\nLarger = better & slower.");
+			ImGui::NextColumn();
+			ImGui::InputInt("##aoSampleCount", &_ao_sampleCount);
+			ImGui::NextColumn();
+		}
+
+		// Min distance
+		{
+			ImGui::Text("Min distance");
+			ImGui::SameLine();
+			ShowHelpMarker("Occluders closer than this value are ignored.");
+			ImGui::NextColumn();
+			ImGui::InputFloat("##aoMinDistance", &_ao_minDistance);
+			ImGui::NextColumn();
+		}
+
+		// Max distance
+		{
+			ImGui::Text("Max distance");
+			ImGui::SameLine();
+			ShowHelpMarker("Max distance to consider occluders.");
+			ImGui::NextColumn();
+			ImGui::InputFloat("##aoMaxDistance", &_ao_maxDistance);
+			ImGui::NextColumn();
+		}
+
+		ImGui::Columns(1);
+
+		if (!_ao_enabled)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+	}
+
+	ImGui::PopID();
+}
+
 void FornosUI::renderParamsSolverNormals()
 {
 	ImGui::PushID("NormalsSolver");
@@ -477,26 +579,6 @@ void FornosUI::renderParamsSolverNormals()
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, 130);
-
-		// Ray offset
-		{
-			ImGui::Text("Ray offset");
-			ImGui::SameLine();
-			ShowHelpMarker("Displaces the ray along the low poly normal.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##normalsRayOffset", &_normals_rayOffset);
-			ImGui::NextColumn();
-		}
-
-		// Ray inwards
-		{
-			ImGui::Text("Ray inwards");
-			ImGui::SameLine();
-			ShowHelpMarker("Rays are projected towards the model.\nUsually if \"Ray Offset\" is positive this should be on.");
-			ImGui::NextColumn();
-			ImGui::Checkbox("##normalsRayInwards", &_normals_rayInwards);
-			ImGui::NextColumn();
-		}
 
 		// Tangent space
 		{
@@ -643,17 +725,6 @@ void FornosUI::startBaking()
 	std::shared_ptr<MeshMapping> meshMapping(new MeshMapping());
 	meshMapping->init(compressedMap, hiPolyMesh, rootBVH);
 
-	if (_normals_enabled)
-	{
-		NormalsSolver::Params params;
-		params.rayOffset = _normals_rayOffset;
-		params.rayInwards = _normals_rayInwards;
-		params.tangentSpace = _normals_tangentSpace;
-		std::unique_ptr<NormalsSolver> normalsSolver(new NormalsSolver(params));
-		normalsSolver->init(compressedMap, meshMapping);
-		tasks.emplace_back(new NormalsTask(std::move(normalsSolver), _normals_outputPath.c_str()));
-	}
-
 	if (_thickness_enabled)
 	{
 		ThicknessSolver::Params params;
@@ -663,6 +734,26 @@ void FornosUI::startBaking()
 		std::unique_ptr<ThicknessSolver> thicknessSolver(new ThicknessSolver(params));
 		thicknessSolver->init(compressedMap, meshMapping);
 		tasks.emplace_back(new ThicknessTask(std::move(thicknessSolver), _thickness_outputPath.c_str()));
+	}
+
+	if (_ao_enabled)
+	{
+		AmbientOcclusionSolver::Params params;
+		params.sampleCount = (uint32_t)_ao_sampleCount;
+		params.minDistance = _ao_minDistance;
+		params.maxDistance = _ao_maxDistance;
+		std::unique_ptr<AmbientOcclusionSolver> solver(new AmbientOcclusionSolver(params));
+		solver->init(compressedMap, meshMapping);
+		tasks.emplace_back(new AmbientOcclusionTask(std::move(solver), _ao_outputPath.c_str()));
+	}
+
+	if (_normals_enabled)
+	{
+		NormalsSolver::Params params;
+		params.tangentSpace = _normals_tangentSpace;
+		std::unique_ptr<NormalsSolver> normalsSolver(new NormalsSolver(params));
+		normalsSolver->init(compressedMap, meshMapping);
+		tasks.emplace_back(new NormalsTask(std::move(normalsSolver), _normals_outputPath.c_str()));
 	}
 
 	tasks.emplace_back(new MeshMappingTask(meshMapping));

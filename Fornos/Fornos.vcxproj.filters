@@ -54,6 +54,9 @@
     <ClCompile Include="meshmapping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="solver_ao.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="timing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="solver_ao.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

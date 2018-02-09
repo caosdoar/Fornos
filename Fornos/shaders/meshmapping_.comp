@@ -30,13 +30,6 @@ struct BVH
 	uint jump; // Index to the next BVH if we skip this subtree
 };
 
-struct V3
-{
-	float x;
-	float y;
-	float z;
-};
-
 layout(location = 1) uniform uint workOffset;
 layout(location = 2) uniform uint workCount;
 layout(location = 3) uniform uint bvhCount;
