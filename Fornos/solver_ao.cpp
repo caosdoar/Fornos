@@ -49,7 +49,8 @@ namespace
 
 void AmbientOcclusionSolver::init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<MeshMapping> meshMapping)
 {
-	_aoProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\ambientocclusion.comp");
+	_aoProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\ao_step1.comp");
+	_avgProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\ao_step2.comp");
 	_uvMap = map;
 	_meshMapping = meshMapping;
 	_workCount = ((map->positions.size() + k_groupSize - 1) / k_groupSize) * k_groupSize;
@@ -67,72 +68,74 @@ void AmbientOcclusionSolver::init(std::shared_ptr<const CompressedMapUV> map, st
 	std::vector<Vector4> samplesData(samples.begin(), samples.end());
 	_samplesCB = std::unique_ptr<ComputeBuffer<Vector4> >(
 		new ComputeBuffer<Vector4>(&samplesData[0], samplesData.size(), GL_STATIC_DRAW));
-#if AO_USE_TEXTURES
-	_resultsAccTex = std::unique_ptr<ComputeTexture_Uint32>(new ComputeTexture_Uint32(map->width, map->height));
-#else
-	_resultsAccCB = std::unique_ptr<ComputeBuffer<float> >(
+
+	_resultsMiddleCB = std::unique_ptr<ComputeBuffer<float> >(
+		new ComputeBuffer<float>(k_workPerFrame, GL_STATIC_READ)); // TODO: static read?
+	_resultsFinalCB = std::unique_ptr<ComputeBuffer<float> >(
 		new ComputeBuffer<float>(_workCount, GL_STATIC_READ));
-#endif
 
 	_workOffset = 0;
-	_sampleIndex = 0;
 	_mapWidth = map->width;
 	_mapHeight = map->height;
 }
 
 bool AmbientOcclusionSolver::runStep()
 {
-	assert(_workOffset < _workCount);
-	const size_t workLeft = _workCount - _workOffset;
+	const size_t totalWork = _workCount * _params.sampleCount;
+	assert(_workOffset < totalWork);
+	const size_t workLeft = totalWork - _workOffset;
 	const size_t work = workLeft < k_workPerFrame ? workLeft : k_workPerFrame;
 	assert(work % k_groupSize == 0);
 
-	if (_workOffset == 0 && _sampleIndex == 0) _timing.begin();
+	if (_workOffset == 0) _timing.begin();
 
-	glUseProgram(_aoProgram);
-
-	glUniform1ui(1, (GLuint)_workOffset);
-	glUniform1ui(2, (GLuint)_meshMapping->meshBVH()->size());
-	glUniform1ui(16, (GLuint)_sampleIndex);
-	glUniform1ui(14, (GLuint)k_samplePermCount);
-#if AO_USE_TEXTURES
-	glUniform1ui(15, (GLuint)_resultsAccTex->width());
-#endif
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _meshMapping->meshNormals()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _meshMapping->meshBVH()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, _meshMapping->coords()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, _meshMapping->coords_tidx()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, _samplesCB->bo());
-#if AO_USE_TEXTURES
-	_resultsAccTex->bind(0, GL_READ_WRITE);
-#else
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsAccCB->bo());
-#endif
-
-	glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
-
-	_workOffset += work;
-	if (_workOffset >= _workCount)
 	{
-		++_sampleIndex;
-		_workOffset = 0;
+		glUseProgram(_aoProgram);
+
+		glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
+		glUniform1ui(2, (GLuint)_meshMapping->meshBVH()->size());
+		glUniform1ui(14, (GLuint)k_samplePermCount);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _meshMapping->meshNormals()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _meshMapping->meshBVH()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, _meshMapping->coords()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, _meshMapping->coords_tidx()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, _samplesCB->bo());
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsMiddleCB->bo());
+
+		glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
 	}
 
-	if (_sampleIndex >= _params.sampleCount)
+	{
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+		glUseProgram(_avgProgram);
+
+		glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _resultsMiddleCB->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _resultsFinalCB->bo());
+
+		glDispatchCompute((GLuint)(work / _params.sampleCount / k_groupSize), 1, 1);
+	}
+
+	_workOffset += work;
+
+	if (_workOffset >= totalWork)
 	{
 		_timing.end();
 		std::cout << "AO map took " << _timing.elapsedSeconds() << " seconds for " << _mapWidth << "x" << _mapHeight << std::endl;
 	}
 
-	return _sampleIndex >= _params.sampleCount;
+	return _workOffset >= totalWork;
 }
 
 float* AmbientOcclusionSolver::getResults()
 {
-	assert(_sampleIndex >= _params.sampleCount);
+	//assert(_sampleIndex >= _params.sampleCount);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 #if AO_USE_TEXTURES
 	//float *resultsAcc = _resultsAccCB->readData();
@@ -147,13 +150,7 @@ float* AmbientOcclusionSolver::getResults()
 	delete[] resultsAcc;
 	return results;
 #else
-	float *resultsAcc = _resultsAccCB->readData();
-	const float s = 1.0f / (float)(_params.sampleCount);
-	for (size_t i = 0; i < _resultsAccCB->size(); ++i)
-	{
-		resultsAcc[i] *= s;
-	}
-	return resultsAcc;
+	return _resultsFinalCB->readData();
 #endif
 }
 

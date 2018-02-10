@@ -33,7 +33,7 @@ public:
 	inline size_t height() const { return _mapHeight; }
 	inline float progress() const
 	{
-		return (float)(_workOffset + _workCount * _sampleIndex) / (float)(_workCount * _params.sampleCount);
+		return (float)(_workOffset) / (float)(_workCount * _params.sampleCount);
 	}
 
 	inline std::shared_ptr<const CompressedMapUV> uvMap() const { return _uvMap; }
@@ -42,9 +42,10 @@ private:
 	Params _params;
 	size_t _workOffset;
 	size_t _workCount;
-	size_t _sampleIndex;
 	size_t _mapWidth;
 	size_t _mapHeight;
+
+	size_t _sampleIndex;
 
 	struct ShaderParams
 	{
@@ -54,13 +55,18 @@ private:
 		float _pad0;
 	};
 
+	GLuint _rayProgram;
 	GLuint _aoProgram;
+	GLuint _avgProgram;
 	std::unique_ptr<ComputeBuffer<ShaderParams> > _paramsCB;
 	std::unique_ptr<ComputeBuffer<Vector4> > _samplesCB;
 #if AO_USE_TEXTURES
 	std::unique_ptr<ComputeTexture_Uint32> _resultsAccTex;
 #else
-	std::unique_ptr<ComputeBuffer<float> > _resultsAccCB;
+	std::unique_ptr<ComputeBuffer<Vector4> > _rayOriginsCB;
+	std::unique_ptr<ComputeBuffer<Vector4> > _rayDirectionsCB;
+	std::unique_ptr<ComputeBuffer<float> > _resultsMiddleCB;
+	std::unique_ptr<ComputeBuffer<float> > _resultsFinalCB;
 #endif
 
 	std::shared_ptr<const CompressedMapUV> _uvMap;
