@@ -42,9 +42,9 @@ layout(std430, binding = BUFFER_RES_TIDX) writeonly buffer rTidxBuffer { uint r_
 float RayAABB(vec3 o, vec3 d, vec3 mins, vec3 maxs)
 {
 	vec3 dabs = abs(d);
-	if (dabs.x < 0.0001) d.x = 0.0001;
-	if (dabs.y < 0.0001) d.y = 0.0001;
-	if (dabs.z < 0.0001) d.z = 0.0001;
+	//if (dabs.x < 0.0001) d.x = 0.0001;
+	//if (dabs.y < 0.0001) d.y = 0.0001;
+	//if (dabs.z < 0.0001) d.z = 0.0001;
 	vec3 t1 = (mins - o) / d;
 	vec3 t2 = (maxs - o) / d;
 	vec3 tmin = min(t1, t2);
@@ -84,7 +84,7 @@ vec4 raycast(vec3 o, vec3 d, vec3 a, vec3 b, vec3 c)
 		{
 			vec3 p = o + d * t;
 			vec3 b = barycentric(p, a, b, c);
-			if (b.x >= 0 && b.x <= 1 && 
+			if (b.x >= 0 && //b.x <= 1 && 
 				b.y >= 0 && b.y <= 1 && 
 				b.z >= 0 && b.z <= 1)
 			{

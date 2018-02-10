@@ -16,6 +16,8 @@ layout (local_size_x = 64) in;
 
 #define FLT_MAX 3.402823466e+38
 
+#define AO_USE_TEXTURES 0
+
 struct Params
 {
 	uint sampleCount; // Number of rays to sample
@@ -47,8 +49,11 @@ struct V3
 
 layout(location = 1) uniform uint workOffset;
 layout(location = 2) uniform uint bvhCount;
-layout(location = 3) uniform uint sampleIndex;
+layout(location = 16) uniform uint sampleIndex;
 layout(location = 14) uniform uint samplePermCount;
+#if AO_USE_TEXTURES
+layout(location = 15) uniform uint texw;
+#endif
 layout(std430, binding = BUFFER_PARAMS) readonly buffer paramsBuffer { Params params; };
 layout(std430, binding = BUFFER_PIXELS) readonly buffer pixBuffer { Pixel pixels[]; };
 layout(std430, binding = BUFFER_POSITIONS) readonly buffer meshPBuffer { vec3 positions[]; };
@@ -57,7 +62,11 @@ layout(std430, binding = BUFFER_BVH) readonly buffer bvhBuffer { BVH bvhs[]; };
 layout(std430, binding = BUFFER_COORDS) readonly buffer coordsBuffer { vec4 coords[]; };
 layout(std430, binding = BUFFER_TIDX) readonly buffer coordsTidxBuffer { uint coords_tidx[]; };
 layout(std430, binding = BUFFER_SAMPLES) readonly buffer samplesBuffer { vec3 samples[]; };
+#if AO_USE_TEXTURES
+layout(r32ui, binding = 0) uniform uimage2D resultsAcc;
+#else
 layout(std430, binding = BUFFER_RESULTS_ACC) buffer resultAccBuffer { float resultsAcc[]; };
+#endif
 
 float RayAABB(vec3 o, vec3 d, vec3 mins, vec3 maxs)
 {
@@ -104,7 +113,7 @@ float raycast(vec3 o, vec3 d, vec3 a, vec3 b, vec3 c)
 		{
 			vec3 p = o + d * t;
 			vec3 b = barycentric(p, a, b, c);
-			if (b.x >= 0 && 
+			if (b.x >= 0 && //b.x <= 1 &&
 				b.y >= 0 && b.y <= 1 &&
 				b.z >= 0 && b.z <= 1)
 			{
@@ -212,6 +221,13 @@ void main()
 	float t = raycastBVH(o, sampleDir, params.minDistance, params.maxDistance);
 	if (t != FLT_MAX && t < params.maxDistance)
 	{
+		//
+#if AO_USE_TEXTURES
+		ivec2 iv = ivec2(gid % texw, gid / texw);
+		imageAtomicAdd(resultsAcc, iv, 1);
+		//imageStore(resultsAcc, iv, imageLoad(resultsAcc, iv) + ivec4(1,1,1,1));
+#else
 		resultsAcc[gid] += 1.0;
+#endif
 	}
 }

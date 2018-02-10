@@ -759,13 +759,29 @@ void FornosUI::startBaking()
 	tasks.emplace_back(new MeshMappingTask(meshMapping));
 }
 
+static void APIENTRY openglCallbackFunction(
+	GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam
+) 
+{
+	if (severity == GL_DEBUG_SEVERITY_HIGH)
+	{
+		fprintf(stderr, "%s\n", message);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	// Setup window
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit()) return 1;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #if __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -776,6 +792,13 @@ int main(int argc, char *argv[])
 	glfwSwapInterval(1);
 	ImGui_ImplGlfwGL3_Init(window, true);
 	SetupImGuiStyle(true, 1.0f);
+
+#if 1
+	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+	glDebugMessageCallback(openglCallbackFunction, nullptr);
+	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, true);
+#endif
 
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 

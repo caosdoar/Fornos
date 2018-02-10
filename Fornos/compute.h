@@ -32,7 +32,7 @@ inline GLuint CreateComputeProgram(const char *path)
 			GLsizei length;
 			glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
 			std::cerr << buff << std::endl;
-			assert(false);
+			//assert(false);
 		}
 	}
 #endif
@@ -54,7 +54,6 @@ public:
 		glGenBuffers(1, &_bo);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bo);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T), &data, usage);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	}
 
 	ComputeBuffer(const T *data, size_t count, GLenum usage)
@@ -63,7 +62,6 @@ public:
 		glGenBuffers(1, &_bo);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bo);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T) * count, data, usage);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	}
 
 	ComputeBuffer(const size_t count, GLenum usage)
@@ -74,7 +72,6 @@ public:
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T) * count, nullptr, usage);
 		GLuint zero = 0;
 		glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R8UI, GL_RED, GL_UNSIGNED_BYTE, &zero);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	}
 
 	~ComputeBuffer()
@@ -99,7 +96,7 @@ private:
 	size_t _size;
 };
 
-template <typename T> inline GLuint CreateComputeBuffer(const T &data, GLenum usage)
+/*template <typename T> inline GLuint CreateComputeBuffer(const T &data, GLenum usage)
 {
 	GLuint bo;
 	glGenBuffers(1, &bo);
@@ -127,7 +124,131 @@ inline GLuint CreateComputeBuffer(size_t size, GLenum usage)
 	glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, usage);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	return bo;
-}
+}*/
+
+class ComputeTexture_Float
+{
+public:
+	ComputeTexture_Float(size_t w, size_t h, bool halfPrecision = false) 
+		: _w(w), _h(h), _hp(halfPrecision)
+	{
+		glGenTextures(1, &_tex);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, _tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, _hp ? GL_R16F : GL_R32F, GLsizei(_w), GLsizei(_h), 0, GL_RED, GL_FLOAT, NULL);
+		const float zero = 0.0f;
+		glClearTexImage(_tex, 0, GL_RED, GL_FLOAT, &zero);
+	}
+
+	~ComputeTexture_Float() { glDeleteTextures(1, &_tex); }
+
+	size_t width() const { return _w; }
+	size_t height() const { return _h; }
+
+	void bind(GLuint unit, GLuint access)
+	{
+		glBindImageTexture(unit, _tex, 0, GL_FALSE, 0, access, _hp ? GL_R16F : GL_R32F);
+	}
+
+	float* readData() const
+	{
+		float *data = new float[_w * _h];
+		glGetTextureImage(_tex, 0, GL_RED, GL_FLOAT, GLsizei(sizeof(float) * _w * _h), data);
+		return data;
+	}
+
+private:
+	GLuint _tex;
+	size_t _w;
+	size_t _h;
+	bool _hp;
+};
+
+class ComputeTexture_Uint32
+{
+public:
+	ComputeTexture_Uint32(size_t w, size_t h)
+		: _w(w), _h(h)
+	{
+		glGenTextures(1, &_tex);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, _tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, GLsizei(_w), GLsizei(_h), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, NULL);
+		const uint32_t zero = 0;
+		glClearTexImage(_tex, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+	}
+
+	~ComputeTexture_Uint32() { glDeleteTextures(1, &_tex); }
+
+	size_t width() const { return _w; }
+	size_t height() const { return _h; }
+
+	void bind(GLuint unit, GLuint access)
+	{
+		glBindImageTexture(unit, _tex, 0, GL_FALSE, 0, access, GL_R32UI);
+	}
+
+	uint32_t* readData() const
+	{
+		uint32_t *data = new uint32_t[_w * _h];
+		glGetTextureImage(_tex, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, GLsizei(sizeof(uint32_t) * _w * _h), data);
+		return data;
+	}
+
+private:
+	GLuint _tex;
+	size_t _w;
+	size_t _h;
+};
+
+class ComputeTexture_Uint16
+{
+public:
+	ComputeTexture_Uint16(size_t w, size_t h)
+		: _w(w), _h(h)
+	{
+		glGenTextures(1, &_tex);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, _tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, GLsizei(_w), GLsizei(_h), 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, NULL);
+		const uint32_t zero = 0;
+		glClearTexImage(_tex, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, &zero);
+	}
+
+	~ComputeTexture_Uint16() { glDeleteTextures(1, &_tex); }
+
+	size_t width() const { return _w; }
+	size_t height() const { return _h; }
+
+	void bind(GLuint unit, GLuint access)
+	{
+		glBindImageTexture(unit, _tex, 0, GL_FALSE, 0, access, GL_R16UI);
+	}
+
+	uint16_t* readData() const
+	{
+		uint16_t *data = new uint16_t[_w * _h];
+		glGetTextureImage(_tex, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, GLsizei(sizeof(uint16_t) * _w * _h), data);
+		return data;
+	}
+
+private:
+	GLuint _tex;
+	size_t _w;
+	size_t _h;
+};
 
 struct MapUV
 {

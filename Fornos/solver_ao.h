@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#define AO_USE_TEXTURES 0
+
 struct MapUV;
 class MeshMapping;
 
@@ -55,7 +57,11 @@ private:
 	GLuint _aoProgram;
 	std::unique_ptr<ComputeBuffer<ShaderParams> > _paramsCB;
 	std::unique_ptr<ComputeBuffer<Vector4> > _samplesCB;
+#if AO_USE_TEXTURES
+	std::unique_ptr<ComputeTexture_Uint32> _resultsAccTex;
+#else
 	std::unique_ptr<ComputeBuffer<float> > _resultsAccCB;
+#endif
 
 	std::shared_ptr<const CompressedMapUV> _uvMap;
 	std::shared_ptr<MeshMapping> _meshMapping;

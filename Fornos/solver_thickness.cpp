@@ -78,10 +78,15 @@ void ThicknessSolver::init(std::shared_ptr<const CompressedMapUV> map, std::shar
 	std::vector<Vector4> samplesData(samples.begin(), samples.end());
 	_samplesCB = std::unique_ptr<ComputeBuffer<Vector4> >(
 		new ComputeBuffer<Vector4>(&samplesData[0], samplesData.size(), GL_STATIC_DRAW));
+#if THICKNESS_USE_TEXTURES
+	_resultsAccTex = std::unique_ptr<ComputeTexture_Float>(new ComputeTexture_Float(map->width, map->height));
+	_resultsDivTex = std::unique_ptr<ComputeTexture_Float>(new ComputeTexture_Float(map->width, map->height));
+#else
 	_resultsAccCB = std::unique_ptr<ComputeBuffer<float> >(
 		new ComputeBuffer<float>(_workCount, GL_STATIC_READ));
 	_resultsDivCB = std::unique_ptr<ComputeBuffer<float> >(
 		new ComputeBuffer<float>(_workCount, GL_STATIC_READ));
+#endif
 
 	_workOffset = 0;
 	_sampleIndex = 0;
@@ -103,6 +108,9 @@ bool ThicknessSolver::runStep()
 	glUniform1ui(1, (GLuint)_workOffset);
 	glUniform1ui(2, (GLuint)_meshMapping->meshBVH()->size());
 	glUniform1ui(3, (GLuint)_sampleIndex);
+#if THICKNESS_USE_TEXTURES
+	glUniform1ui(15, (GLuint)_resultsAccTex->width());
+#endif
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
@@ -111,8 +119,13 @@ bool ThicknessSolver::runStep()
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, _meshMapping->coords()->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, _meshMapping->coords_tidx()->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, _samplesCB->bo());
+#if THICKNESS_USE_TEXTURES
+	_resultsAccTex->bind(0, GL_READ_WRITE);
+	_resultsDivTex->bind(1, GL_READ_WRITE);
+#else
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsAccCB->bo());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, _resultsDivCB->bo());
+#endif
 
 	glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
 
@@ -136,9 +149,16 @@ float* ThicknessSolver::getResults()
 {
 	assert(_sampleIndex >= _params.sampleCount);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+#if THICKNESS_USE_TEXTURES
+	float *resultsAcc = _resultsAccTex->readData();
+	float *resultsDiv = _resultsDivTex->readData();
+	const size_t count = _resultsAccTex->width() * _resultsAccTex->height();
+#else
 	float *resultsAcc = _resultsAccCB->readData();
 	float *resultsDiv = _resultsDivCB->readData();
-	for (size_t i = 0; i < _resultsAccCB->size(); ++i)
+	const size_t count = _workCount;
+#endif
+	for (size_t i = 0; i < count; ++i)
 	{
 		resultsAcc[i] /= resultsDiv[i];
 	}

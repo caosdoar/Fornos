@@ -93,6 +93,7 @@ MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 	return map;
 }
 
+#pragma optimize( "", off )
 CompressedMapUV::CompressedMapUV(const MapUV *map)
 	: width(map->width)
 	, height(map->height)
@@ -132,6 +133,7 @@ CompressedMapUV::CompressedMapUV(const MapUV *map)
 		}
 	}
 }
+#pragma optimize( "", on )
 
 /**
 Exports a float map as grayscale and returns value ranges

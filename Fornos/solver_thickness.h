@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#define THICKNESS_USE_TEXTURES 0
+
 struct MapUV;
 class MeshMapping;
 
@@ -55,8 +57,13 @@ private:
 	GLuint _thicknessProgram;
 	std::unique_ptr<ComputeBuffer<ThicknessShaderParams> > _paramsCB;
 	std::unique_ptr<ComputeBuffer<Vector4> > _samplesCB;
+#if THICKNESS_USE_TEXTURES
+	std::unique_ptr<ComputeTexture_Float> _resultsAccTex;
+	std::unique_ptr<ComputeTexture_Float> _resultsDivTex;
+#else
 	std::unique_ptr<ComputeBuffer<float> > _resultsAccCB;
 	std::unique_ptr<ComputeBuffer<float> > _resultsDivCB;
+#endif
 
 	std::shared_ptr<const CompressedMapUV> _uvMap;
 	std::shared_ptr<MeshMapping> _meshMapping;
