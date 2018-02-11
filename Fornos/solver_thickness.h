@@ -7,8 +7,6 @@
 #include <memory>
 #include <vector>
 
-#define THICKNESS_USE_TEXTURES 0
-
 struct MapUV;
 class MeshMapping;
 
@@ -31,9 +29,9 @@ public:
 
 	inline size_t width() const { return _mapWidth; }
 	inline size_t height() const { return _mapHeight; }
-	inline float progress() const 
-	{ 
-		return (float)(_workOffset + _workCount * _sampleIndex) / (float)(_workCount * _params.sampleCount); 
+	inline float progress() const
+	{
+		return (float)(_workOffset) / (float)(_workCount * _params.sampleCount);
 	}
 
 	inline std::shared_ptr<const CompressedMapUV> uvMap() const { return _uvMap; }
@@ -42,11 +40,12 @@ private:
 	Params _params;
 	size_t _workOffset;
 	size_t _workCount;
-	size_t _sampleIndex;
 	size_t _mapWidth;
 	size_t _mapHeight;
 
-	struct ThicknessShaderParams
+	size_t _sampleIndex;
+
+	struct ShaderParams
 	{
 		uint32_t sampleCount;
 		float minDistance;
@@ -54,16 +53,22 @@ private:
 		float _pad0;
 	};
 
+	struct RayData
+	{
+		Vector3 o; float _pad0;
+		Vector3 d; float _pad1;
+		Vector3 tx; float _pad2;
+		Vector3 ty; float _pad3;
+	};
+
+	GLuint _rayProgram;
 	GLuint _thicknessProgram;
-	std::unique_ptr<ComputeBuffer<ThicknessShaderParams> > _paramsCB;
+	GLuint _avgProgram;
+	std::unique_ptr<ComputeBuffer<ShaderParams> > _paramsCB;
 	std::unique_ptr<ComputeBuffer<Vector4> > _samplesCB;
-#if THICKNESS_USE_TEXTURES
-	std::unique_ptr<ComputeTexture_Float> _resultsAccTex;
-	std::unique_ptr<ComputeTexture_Float> _resultsDivTex;
-#else
-	std::unique_ptr<ComputeBuffer<float> > _resultsAccCB;
-	std::unique_ptr<ComputeBuffer<float> > _resultsDivCB;
-#endif
+	std::unique_ptr<ComputeBuffer<RayData> > _rayDataCB;
+	std::unique_ptr<ComputeBuffer<float> > _resultsMiddleCB;
+	std::unique_ptr<ComputeBuffer<float> > _resultsFinalCB;
 
 	std::shared_ptr<const CompressedMapUV> _uvMap;
 	std::shared_ptr<MeshMapping> _meshMapping;

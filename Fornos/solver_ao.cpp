@@ -156,21 +156,7 @@ float* AmbientOcclusionSolver::getResults()
 {
 	//assert(_sampleIndex >= _params.sampleCount);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-#if AO_USE_TEXTURES
-	//float *resultsAcc = _resultsAccCB->readData();
-	uint32_t *resultsAcc = _resultsAccTex->readData();
-	const float s = 1.0f / (float)(_params.sampleCount);
-	const size_t count = _resultsAccTex->width() * _resultsAccTex->height();
-	float *results = new float[count];
-	for (size_t i = 0; i < count; ++i)
-	{
-		results[i] = float(resultsAcc[i]) * s;
-	}
-	delete[] resultsAcc;
-	return results;
-#else
 	return _resultsFinalCB->readData();
-#endif
 }
 
 AmbientOcclusionTask::AmbientOcclusionTask(std::unique_ptr<AmbientOcclusionSolver> solver, const char *outputPath)
