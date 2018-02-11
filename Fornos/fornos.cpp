@@ -151,6 +151,7 @@ private:
 	NormalImport _hiPolyNormal;
 	ImGuiFs::Dialog _lowPolyDialog;
 	ImGuiFs::Dialog _hiPolyDialog;
+	int _bvhTrisPerNode;
 
 	// Texture data
 	int _texWidth;
@@ -188,6 +189,7 @@ private:
 FornosUI::FornosUI()
 	: _lowPolyNormal(NormalImport::Import)
 	, _hiPolyNormal(NormalImport::Import)
+	, _bvhTrisPerNode(8)
 	, _texWidth(1024)
 	, _texHeight(1024)
 	, _thickness_enabled(false)
@@ -381,6 +383,16 @@ void FornosUI::renderParamsShared()
 			ImGui::PushItemWidth(100);
 			ImGui::DragInt("##TexH", &_texHeight, 32.0f, 256, 8192);
 			ImGui::PopItemWidth();
+			ImGui::NextColumn();
+		}
+
+		// Advance
+		{
+			ImGui::Text("BVH Tri. Count");
+			ImGui::SameLine();
+			ShowHelpMarker("Maximum number of triangles per BVH leaf node.");
+			ImGui::NextColumn();
+			ImGui::InputInt("##BvhTriCount", &_bvhTrisPerNode);
 			ImGui::NextColumn();
 		}
 
@@ -720,7 +732,7 @@ void FornosUI::startBaking()
 		return;
 	}
 
-	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), 32, 128));
+	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), _bvhTrisPerNode, 8192));
 
 	std::shared_ptr<MeshMapping> meshMapping(new MeshMapping());
 	meshMapping->init(compressedMap, hiPolyMesh, rootBVH);
