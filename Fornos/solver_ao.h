@@ -55,6 +55,14 @@ private:
 		float _pad0;
 	};
 
+	struct RayData
+	{
+		Vector3 o; float _pad0;
+		Vector3 d; float _pad1;
+		Vector3 tx; float _pad2;
+		Vector3 ty; float _pad3;
+	};
+
 	GLuint _rayProgram;
 	GLuint _aoProgram;
 	GLuint _avgProgram;
@@ -63,8 +71,7 @@ private:
 #if AO_USE_TEXTURES
 	std::unique_ptr<ComputeTexture_Uint32> _resultsAccTex;
 #else
-	std::unique_ptr<ComputeBuffer<Vector4> > _rayOriginsCB;
-	std::unique_ptr<ComputeBuffer<Vector4> > _rayDirectionsCB;
+	std::unique_ptr<ComputeBuffer<RayData> > _rayDataCB;
 	std::unique_ptr<ComputeBuffer<float> > _resultsMiddleCB;
 	std::unique_ptr<ComputeBuffer<float> > _resultsFinalCB;
 #endif
