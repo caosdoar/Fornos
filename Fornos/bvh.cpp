@@ -143,6 +143,15 @@ void binaryDivisionBVH(const Mesh *mesh, const size_t maxTriangleCount, const si
 		}
 	}
 
+	if (parent.children[0].triangles.empty() ||
+		parent.children[1].triangles.empty())
+	{
+		// Unable to subdivide... We brake here
+		// TODO: Check if there is a way to improve this
+		parent.children.clear();
+		return;
+	}
+
 	parent.triangles.clear();
 
 	parent.children[0].aabb = AABB((aabbMinL + aabbMaxL) * 0.5f, (aabbMaxL - aabbMinL) * 0.5f);
