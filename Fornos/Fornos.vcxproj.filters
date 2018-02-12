@@ -57,6 +57,9 @@
     <ClCompile Include="solver_ao.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="solver_bentnormals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h">
@@ -87,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="solver_ao.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="solver_bentnormals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

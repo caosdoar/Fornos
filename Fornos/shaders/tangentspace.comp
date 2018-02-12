@@ -1,0 +1,50 @@
+#version 430 core
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_shader_storage_buffer_object : enable
+
+layout (local_size_x = 64) in;
+
+#define FLT_MAX 3.402823466e+38
+
+#define TANGENT_SPACE 1
+
+struct Pixel
+{
+	vec3 p;
+	vec3 n;
+};
+
+struct PixelT
+{
+	vec3 t;
+	vec3 b;
+};
+
+struct V3 { float x; float y; float z; };
+
+layout(location = 1) uniform uint workOffset;
+layout(std430, binding = 4) readonly buffer pixBuffer { Pixel pixels[]; };
+layout(std430, binding = 5) readonly buffer pixtBuffer { PixelT pixelst[]; };
+layout(std430, binding = 11) buffer resultBuffer { V3 results[]; };
+
+void main()
+{
+	uint gid = gl_GlobalInvocationID.x;
+	uint result_idx = gid + workOffset;
+
+	vec3 normal = vec3(results[result_idx].x, results[result_idx].y, results[result_idx].z);
+
+	Pixel pix = pixels[result_idx];
+	PixelT pixt = pixelst[result_idx];
+	vec3 n = pix.n;
+	vec3 t = pixt.t;
+	vec3 b = pixt.b;
+	vec3 d0 = vec3(n.z*b.y - n.y*b.z, n.x*b.z - n.z*b.x, n.y*b.x - n.x*b.y);
+	vec3 d1 = vec3(t.z*n.y - t.y*n.z, t.x*n.z - n.x*t.z, n.x*t.y - t.x*n.y);
+	vec3 d2 = vec3(t.y*b.z - t.z*b.y, t.z*b.x - t.x*b.z, t.x*b.y - t.y*b.x);
+	normal = normalize(vec3(dot(normal, d0), dot(normal, d1), dot(normal, d2)));
+
+	results[result_idx].x = normal.x;
+	results[result_idx].y = normal.y;
+	results[result_idx].z = normal.z;
+}

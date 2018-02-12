@@ -15,7 +15,7 @@ layout (local_size_x = 32) in;
 
 #define FLT_MAX 3.402823466e+38
 
-#define TANGENT_SPACE 1
+#define TANGENT_SPACE 0
 
 struct Pixel
 {

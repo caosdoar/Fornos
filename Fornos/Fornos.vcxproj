@@ -145,6 +145,7 @@
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="meshmapping.cpp" />
     <ClCompile Include="solver_ao.cpp" />
+    <ClCompile Include="solver_bentnormals.cpp" />
     <ClCompile Include="solver_normals.cpp" />
     <ClCompile Include="solver_thickness.cpp" />
   </ItemGroup>
@@ -155,6 +156,7 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="meshmapping.h" />
     <ClInclude Include="solver_ao.h" />
+    <ClInclude Include="solver_bentnormals.h" />
     <ClInclude Include="solver_normals.h" />
     <ClInclude Include="solver_thickness.h" />
     <ClInclude Include="stb_image_write.h" />

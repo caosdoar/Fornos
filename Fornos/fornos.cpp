@@ -15,6 +15,7 @@
 #include "mesh.h"
 #include "meshmapping.h"
 #include "solver_ao.h"
+#include "solver_bentnormals.h"
 #include "solver_normals.h"
 #include "solver_thickness.h"
 
@@ -136,6 +137,7 @@ protected:
 	void renderParamsShared();
 	void renderParamsSolverNormals();
 	void renderParamsSolverAO();
+	void renderParamsSolverBentNormals();
 	void renderParamsSolverThickness();
 	void renderWorkInProgress();
 	void renderErrors();
@@ -171,6 +173,15 @@ private:
 	std::string _ao_outputPath;
 	ImGuiFs::Dialog _ao_outputDialog;
 
+	// Bent normals data
+	bool _bn_enabled;
+	int _bn_sampleCount;
+	float _bn_minDistance;
+	float _bn_maxDistance;
+	bool _bn_tangentSpace;
+	std::string _bn_outputPath;
+	ImGuiFs::Dialog _bn_outputDialog;
+
 	// Thickness solver data
 	bool _thickness_enabled;
 	int _thickness_sampleCount;
@@ -202,6 +213,11 @@ FornosUI::FornosUI()
 	, _ao_sampleCount(128)
 	, _ao_minDistance(0.1f)
 	, _ao_maxDistance(1.0f)
+	, _bn_enabled(false)
+	, _bn_sampleCount(128)
+	, _bn_minDistance(0.1f)
+	, _bn_maxDistance(1.0f)
+	, _bn_tangentSpace(true)
 {
 	memset(_strBuff, 0, 2048);
 }
@@ -229,12 +245,14 @@ void FornosUI::renderParameters()
 	renderParamsShared();
 	renderParamsSolverNormals();
 	renderParamsSolverAO();
+	renderParamsSolverBentNormals();
 	renderParamsSolverThickness();
 
 	const bool readyToBake = 
 		(_thickness_enabled && !_thickness_outputPath.empty()) || 
 		(_normals_enabled && !_normals_outputPath.empty()) ||
-		(_ao_enabled && !_ao_outputPath.empty());
+		(_ao_enabled && !_ao_outputPath.empty()) ||
+		(_bn_enabled && !_bn_outputPath.empty());
 
 	if (!readyToBake)
 	{
@@ -574,6 +592,103 @@ void FornosUI::renderParamsSolverAO()
 	ImGui::PopID();
 }
 
+void FornosUI::renderParamsSolverBentNormals()
+{
+	ImGui::PushID("BentNormalsSolver");
+
+	bool aoExpanded = ImGui::CollapsingHeader("Bent Normals", ImGuiTreeNodeFlags_AllowItemOverlap);
+	ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+	ImGui::Checkbox("", &_bn_enabled);
+	if (aoExpanded)
+	{
+		if (!_bn_enabled)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		}
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 130);
+
+		// Output
+		{
+			ImGui::Text("Output");
+			ImGui::SameLine();
+			ShowHelpMarker("Bent normals image output file.");
+			ImGui::NextColumn();
+			strncpy_s(_strBuff, _bn_outputPath.c_str(), 2048);
+			if (ImGui::InputText("##bnOutput", _strBuff, 2048))
+			{
+				_bn_outputPath = std::string(_strBuff);
+			}
+			ImGui::SameLine();
+			const bool pressed = ImGui::Button("...##bnOutput");
+			const char *path = _bn_outputDialog.chooseFileDialog(
+				pressed,
+				nullptr,
+				".png",
+				"Ambient Occlusion Image",
+				ImVec2((float)windowWidth, (float)windowHeight),
+				ImVec2(0, 0));
+			if (strlen(path) != 0)
+			{
+				_bn_outputPath = std::string(path);
+			}
+			ImGui::NextColumn();
+		}
+
+		// Sample count
+		{
+			ImGui::Text("Sample count");
+			ImGui::SameLine();
+			ShowHelpMarker("Number of samples.\nLarger = better & slower.");
+			ImGui::NextColumn();
+			ImGui::InputInt("##bnSampleCount", &_bn_sampleCount);
+			ImGui::NextColumn();
+		}
+
+		// Min distance
+		{
+			ImGui::Text("Min distance");
+			ImGui::SameLine();
+			ShowHelpMarker("Occluders closer than this value are ignored.");
+			ImGui::NextColumn();
+			ImGui::InputFloat("##bnMinDistance", &_bn_minDistance);
+			ImGui::NextColumn();
+		}
+
+		// Max distance
+		{
+			ImGui::Text("Max distance");
+			ImGui::SameLine();
+			ShowHelpMarker("Occluders farther than this value are ignored.");
+			ImGui::NextColumn();
+			ImGui::InputFloat("##bnMaxDistance", &_bn_maxDistance);
+			ImGui::NextColumn();
+		}
+
+		// Tangent space
+		{
+			ImGui::Text("Tangent space");
+			ImGui::SameLine();
+			ShowHelpMarker("Compute normals in tangent space.");
+			ImGui::NextColumn();
+			ImGui::Checkbox("##bnTanspace", &_bn_tangentSpace);
+			ImGui::NextColumn();
+		}
+
+		ImGui::Columns(1);
+
+		if (!_bn_enabled)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+	}
+
+	ImGui::PopID();
+}
+
 void FornosUI::renderParamsSolverNormals()
 {
 	ImGui::PushID("NormalsSolver");
@@ -718,7 +833,10 @@ void FornosUI::startBaking()
 		}
 	}
 
-	const bool needsTangentSpace = _normals_enabled && _normals_tangentSpace;
+	const bool needsTangentSpace = 
+		_normals_enabled && _normals_tangentSpace ||
+		_bn_enabled && _bn_tangentSpace;
+
 	if (needsTangentSpace)
 	{
 		lowPolyMesh->computeTangentSpace();
@@ -747,6 +865,19 @@ void FornosUI::startBaking()
 		thicknessSolver->init(compressedMap, meshMapping);
 		tasks.emplace_back(new ThicknessTask(std::move(thicknessSolver), _thickness_outputPath.c_str()));
 	}
+
+	if (_bn_enabled)
+	{
+		BentNormalsSolver::Params params;
+		params.sampleCount = (uint32_t)_bn_sampleCount;
+		params.minDistance = _bn_minDistance;
+		params.maxDistance = _bn_maxDistance;
+		params.tangentSpace = _bn_tangentSpace;
+		std::unique_ptr<BentNormalsSolver> solver(new BentNormalsSolver(params));
+		solver->init(compressedMap, meshMapping);
+		tasks.emplace_back(new BentNormalsTask(std::move(solver), _bn_outputPath.c_str()));
+	}
+
 
 	if (_ao_enabled)
 	{
