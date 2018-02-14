@@ -1,11 +1,8 @@
 #include "solver_bentnormals.h"
 #include "compute.h"
+#include "image.h"
 #include "meshmapping.h"
 #include <cassert>
-
-#pragma warning(disable:4996)
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 static const size_t k_groupSize = 64;
 static const size_t k_workPerFrame = 1024 * 128;
@@ -19,32 +16,6 @@ namespace
 		std::vector<Vector3> sampleDirs(count);
 		computeSamplesImportanceCosDir(sampleCount, permutationCount, &sampleDirs[0]);
 		return sampleDirs;
-	}
-
-	void ExportNormalMap(const Vector3 *data, const CompressedMapUV *map, const size_t w, const size_t h, const char *path)
-	{
-		const size_t count = map->indices.size();
-
-		uint8_t *rgb = new uint8_t[w * h * 3];
-		memset(rgb, 0, sizeof(uint8_t) * w * h * 3);
-
-		for (size_t i = 0; i < count; ++i)
-		{
-			const Vector3 n = data[i] * 0.5f + Vector3(0.5f);
-			const uint8_t r = (uint8_t)(n.x * 255.0f);
-			const uint8_t g = (uint8_t)(n.y * 255.0f);
-			const uint8_t b = (uint8_t)(n.z * 255.0f);
-			const size_t index = map->indices[i];
-			const size_t x = index % w;
-			const size_t y = index / w;
-			const size_t pixidx = ((h - y - 1) * w + x) * 3;
-			rgb[pixidx + 0] = r;
-			rgb[pixidx + 1] = g;
-			rgb[pixidx + 2] = b;
-		}
-
-		stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);
-		delete[] rgb;
 	}
 }
 
@@ -192,7 +163,7 @@ void BentNormalsTask::finish()
 {
 	assert(_solver);
 	Vector3 *results = _solver->getResults();
-	ExportNormalMap(results, _solver->uvMap().get(), _solver->width(), _solver->height(), _outputPath.c_str());
+	exportNormalImage(results, _solver->uvMap().get(), _outputPath.c_str());
 	delete[] results;
 }
 

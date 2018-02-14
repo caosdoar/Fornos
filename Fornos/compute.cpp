@@ -2,10 +2,6 @@
 #include "math.h"
 #include "mesh.h"
 
-#pragma warning(disable:4996)
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
 MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 {
 	assert(mesh);
@@ -93,7 +89,6 @@ MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 	return map;
 }
 
-#pragma optimize( "", off )
 CompressedMapUV::CompressedMapUV(const MapUV *map)
 	: width(map->width)
 	, height(map->height)
@@ -132,42 +127,4 @@ CompressedMapUV::CompressedMapUV(const MapUV *map)
 			bitangents[i] = map->bitangents[idx];
 		}
 	}
-}
-#pragma optimize( "", on )
-
-/**
-Exports a float map as grayscale and returns value ranges
-*/
-Vector2 ExportFloatMap(const float *data, const size_t w, const size_t h, const char *path)
-{
-	Vector2 minmax(FLT_MAX, -FLT_MAX);
-	for (size_t i = 0; i < w * h; ++i)
-	{
-		const float r = data[i];
-		minmax.x = std::fminf(minmax.x, r);
-		minmax.y = std::fmaxf(minmax.y, r);
-	}
-
-	const float scale = 1.0f / (minmax.y - minmax.x);
-	const float bias = -minmax.x * scale;
-
-	uint8_t *rgb = new uint8_t[w * h * 3];
-	for (size_t j = 0; j < h; ++j)
-	{
-		for (size_t i = 0; i < w; ++i)
-		{
-			const size_t index = (j * w + i);
-			const float d = data[index];
-			const float t = std::fminf(d * scale + bias, 1.0f);
-			const uint8_t c = (uint8_t)(t * 255.0f);
-			const size_t pixidx = ((h - j - 1) * w + i) * 3;
-			rgb[pixidx + 0] = c;
-			rgb[pixidx + 1] = c;
-			rgb[pixidx + 2] = c;
-		}
-	}
-	stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);
-	delete[] rgb;
-
-	return minmax;
 }

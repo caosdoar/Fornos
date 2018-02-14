@@ -26,5 +26,5 @@ void main()
 		acc += data[data_start_idx + i];
 	}
 	uint result_idx = gid + workOffset;
-	results[result_idx] = 1.0 - acc / float(params.sampleCount);
+	results[result_idx] = acc / float(params.sampleCount);
 }

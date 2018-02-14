@@ -3,9 +3,11 @@
 #include "meshmapping.h"
 #include <cassert>
 
-#pragma warning(disable:4996)
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+//#pragma warning(disable:4996)
+////#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#include "stb_image_write.h"
+
+#include "image.h"
 
 static const size_t k_groupSize = 64;
 static const size_t k_workPerFrame = 1024 * 128;
@@ -19,31 +21,6 @@ namespace
 		std::vector<Vector3> sampleDirs(count);
 		computeSamplesImportanceCosDir(sampleCount, permutationCount, &sampleDirs[0]);
 		return sampleDirs;
-	}
-
-	void ExportAOMap(const float *data, const CompressedMapUV *map, const size_t w, const size_t h, const char *path)
-	{
-		const size_t count = map->indices.size();
-
-		uint8_t *rgb = new uint8_t[w * h * 3];
-		memset(rgb, 0, sizeof(uint8_t) * w * h * 3);
-
-		for (size_t i = 0; i < count; ++i)
-		{
-			const float d = data[i];
-			const float t = 1.0f - d;
-			const uint8_t c = (uint8_t)(t * 255.0f);
-			const size_t index = map->indices[i];
-			const size_t x = index % w;
-			const size_t y = index / w;
-			const size_t pixidx = ((h - y - 1) * w + x) * 3;
-			rgb[pixidx + 0] = c;
-			rgb[pixidx + 1] = c;
-			rgb[pixidx + 2] = c;
-		}
-
-		stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);
-		delete[] rgb;
 	}
 }
 
@@ -179,7 +156,7 @@ void AmbientOcclusionTask::finish()
 {
 	assert(_solver);
 	float *results = _solver->getResults();
-	ExportAOMap(results, _solver->uvMap().get(), _solver->width(), _solver->height(), _outputPath.c_str());
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true); // TODO: Normalize
 	delete[] results;
 }
 

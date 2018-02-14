@@ -375,22 +375,22 @@ FornosUI::FornosUI()
 	: _lowPolyNormal(NormalImport::Import)
 	, _hiPolyNormal(NormalImport::Import)
 	, _bvhTrisPerNode(8)
-	, _texWidth(1024)
-	, _texHeight(1024)
+	, _texWidth(2048)
+	, _texHeight(2048)
 	, _thickness_enabled(false)
-	, _thickness_sampleCount(128)
+	, _thickness_sampleCount(256)
 	, _thickness_minDistance(0.1f)
 	, _thickness_maxDistance(1.0f)
 	, _normals_enabled(false)
 	, _normals_tangentSpace(true)
 	, _ao_enabled(false)
-	, _ao_sampleCount(128)
-	, _ao_minDistance(0.1f)
-	, _ao_maxDistance(1.0f)
+	, _ao_sampleCount(256)
+	, _ao_minDistance(0.01f)
+	, _ao_maxDistance(10.0f)
 	, _bn_enabled(false)
-	, _bn_sampleCount(128)
-	, _bn_minDistance(0.1f)
-	, _bn_maxDistance(1.0f)
+	, _bn_sampleCount(256)
+	, _bn_minDistance(0.01f)
+	, _bn_maxDistance(10.0f)
 	, _bn_tangentSpace(true)
 {
 }
@@ -514,7 +514,7 @@ void FornosUI::renderParamsSolverThickness()
 
 		parameter_saveFile("Output", &_thickness_outputPath, "##thickness",
 			"Thickness image output file.",
-			"Thickness Map", ".png");
+			"Thickness Map", ".png;.tga;.exr");
 
 		parameter("Sample count", &_thickness_sampleCount, "##thicknessSampleCount",
 			"Number of samples.\nLarger = better & slower.");
@@ -554,7 +554,7 @@ void FornosUI::renderParamsSolverAO()
 
 		parameter_saveFile("Output", &_ao_outputPath, "##ao",
 			"Ambient occlusion image output file.",
-			"Ambient Occlusion Map", ".png");
+			"Ambient Occlusion Map", ".png;.tga;.exr");
 
 		parameter("Sample count", &_ao_sampleCount, "##aoSampleCount",
 			"Number of samples.\nLarger = better & slower.");
@@ -594,7 +594,7 @@ void FornosUI::renderParamsSolverBentNormals()
 
 		parameter_saveFile("Output", &_bn_outputPath, "##bn",
 			"Bent normals image output file.",
-			"Bent Normals Map", ".png");
+			"Bent Normals Map", ".png;.tga;.exr");
 
 		parameter("Sample count", &_bn_sampleCount, "##bnSampleCount",
 			"Number of samples.\nLarger = better & slower.");
@@ -636,9 +636,9 @@ void FornosUI::renderParamsSolverNormals()
 
 		parameter_saveFile("Output", &_normals_outputPath, "##normals",
 			"Normal map output file.",
-			"Normals Map", ".png");
+			"Normals Map", ".png;.tga;.exr");
 
-		parameter("Tangent space", &_normals_tangentSpace, "#normalsTanSpace",
+		parameter("Tangent space", &_normals_tangentSpace, "##normalsTanSpace",
 			"Computes tangent space normals if this is checked.\n"
 			"Otherwise it generates object space normals.");
 

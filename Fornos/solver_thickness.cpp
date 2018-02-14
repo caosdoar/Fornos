@@ -1,11 +1,8 @@
 #include "solver_thickness.h"
 #include "compute.h"
 #include "meshmapping.h"
+#include "image.h"
 #include <cassert>
-
-#pragma warning(disable:4996)
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 static const size_t k_groupSize = 64;
 static const size_t k_workPerFrame = 1024 * 128;
@@ -20,50 +17,13 @@ namespace
 		computeSamplesImportanceCosDir(sampleCount, permutationCount, &sampleDirs[0]);
 		return sampleDirs;
 	}
-
-	Vector2 ExportThicknessMap(const float *data, const CompressedMapUV *map, const size_t w, const size_t h, const char *path)
-	{
-		const size_t count = map->indices.size();
-
-		Vector2 minmax(FLT_MAX, -FLT_MAX);
-		for (size_t i = 0; i < count; ++i)
-		{
-			const float r = data[i];
-			minmax.x = std::fminf(minmax.x, r);
-			minmax.y = std::fmaxf(minmax.y, r);
-		}
-
-		const float scale = 1.0f / (minmax.y - minmax.x);
-		const float bias = -minmax.x * scale;
-
-		uint8_t *rgb = new uint8_t[w * h * 3];
-		memset(rgb, 0, sizeof(uint8_t) * w * h * 3);
-
-		for (size_t i = 0; i < count; ++i)
-		{
-			const float d = data[i];
-			const float t = std::fminf(d * scale + bias, 1.0f);
-			const uint8_t c = (uint8_t)(t * 255.0f);
-			const size_t index = map->indices[i];
-			const size_t x = index % w;
-			const size_t y = index / w;
-			const size_t pixidx = ((h - y - 1) * w + x) * 3;
-			rgb[pixidx + 0] = c;
-			rgb[pixidx + 1] = c;
-			rgb[pixidx + 2] = c;
-		}
-
-		stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);
-		delete[] rgb;
-		return minmax;
-	}
 }
 
 void ThicknessSolver::init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<MeshMapping> meshMapping)
 {
 	_rayProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\ao_step0.comp");
 	_thicknessProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\thick_step1.comp");
-	_avgProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\ao_step2.comp");
+	_avgProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\thick_step2.comp");
 	_uvMap = map;
 	_meshMapping = meshMapping;
 	_workCount = ((map->positions.size() + k_groupSize - 1) / k_groupSize) * k_groupSize;
@@ -191,7 +151,7 @@ void ThicknessTask::finish()
 {
 	assert(_solver);
 	float *results = _solver->getResults();
-	ExportThicknessMap(results, _solver->uvMap().get(), _solver->width(), _solver->height(), _outputPath.c_str());
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true);
 	delete[] results;
 }
 

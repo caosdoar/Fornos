@@ -36,6 +36,7 @@ private:
 	size_t _mapHeight;
 
 	GLuint _normalsProgram;
+	GLuint _tanspaceProgram;
 	std::unique_ptr<ComputeBuffer<float> > _resultsCB;
 
 	std::shared_ptr<const CompressedMapUV> _uvMap;
