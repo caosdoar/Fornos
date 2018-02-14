@@ -19,6 +19,8 @@
 #include "solver_normals.h"
 #include "solver_thickness.h"
 
+#include <filesystem>
+
 static int windowWidth = 640;
 static int windowHeight = 480;
 static std::vector<FornosTask*> tasks;
@@ -113,6 +115,63 @@ inline void SetupImGuiStyle(bool bStyleDark_, float alpha_)
 	}
 }
 
+class PathField
+{
+public:
+	void draw(const char *title, const char *extensionFilter, bool save)
+	{
+		strncpy_s(s_buff, 2048, _path.c_str(), _path.size());
+		if (ImGui::InputText("##path", s_buff, 2048))
+		{
+			_path = std::string(s_buff);
+		}
+		ImGui::SameLine();
+		const bool pressed = ImGui::Button("...##path");
+
+		const char *path_str = nullptr;
+		
+		if (save)
+		{
+			path_str = _fsDialog.saveFileDialog
+			(
+				pressed,
+				_path.empty() ? s_fsPath.c_str() : _path.c_str(), "",
+				extensionFilter, title,
+				ImVec2((float)windowWidth, (float)windowHeight),
+				ImVec2(0, 0)
+			);
+		}
+		else
+		{
+			path_str = _fsDialog.chooseFileDialog
+			(
+				pressed,
+				_path.empty() ? s_fsPath.c_str() : _path.c_str(),
+				extensionFilter, title,
+				ImVec2((float)windowWidth, (float)windowHeight),
+				ImVec2(0, 0)
+			);
+		}
+
+		if (strlen(path_str) != 0)
+		{
+			_path = std::string(path_str);
+			s_fsPath = _path;
+		}
+	}
+
+	const std::string& get() const { return _path; }
+
+private:
+	static std::string s_fsPath;
+	static char s_buff[2048];
+	ImGuiFs::Dialog _fsDialog;
+	std::string _path;
+};
+
+std::string PathField::s_fsPath;
+char PathField::s_buff[2048];
+
 static void ShowHelpMarker(const char* desc)
 {
 	ImGui::TextDisabled("(?)");
@@ -124,6 +183,130 @@ static void ShowHelpMarker(const char* desc)
 		ImGui::PopTextWrapPos();
 		ImGui::EndTooltip();
 	}
+}
+
+static void parameters_begin()
+{
+	ImGui::Columns(2);
+	ImGui::SetColumnWidth(0, 130);
+}
+
+static void parameters_end()
+{
+	ImGui::Columns(1);
+}
+
+static void parameter_common(const char *name, const char *help)
+{
+	ImGui::Text(name);
+	ImGui::SameLine();
+	ShowHelpMarker(help);
+	ImGui::NextColumn();
+}
+
+static void parameter(const char *name, int *value, const char *id, const char *help)
+{
+	parameter_common(name, help);
+	ImGui::InputInt(id, value);
+	ImGui::NextColumn();
+}
+
+static void parameter(const char *name, float *value, const char *id, const char *help)
+{
+	parameter_common(name, help);
+	ImGui::InputFloat(id, value);
+	ImGui::NextColumn();
+}
+
+static void parameter(const char *name, bool *value, const char *id, const char *help)
+{
+	parameter_common(name, help);
+	ImGui::Checkbox(id, value);
+	ImGui::NextColumn();
+}
+
+static void parameter_texSize(const char *name, int *width, int *height, const char *id, const char *help)
+{
+	parameter_common(name, help);
+	ImGui::PushItemWidth(100);
+	ImGui::DragInt("##TexW", width, 32.0f, 256, 8192);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	ImGui::Text("x");
+	ImGui::SameLine();
+	ImGui::PushItemWidth(100);
+	ImGui::DragInt("##TexH", height, 32.0f, 256, 8192);
+	ImGui::PopItemWidth();
+	ImGui::NextColumn();
+}
+
+static ImGuiFs::Dialog s_fsDialog;
+static std::string s_fsPath;
+
+static void parameter_openFile
+(
+	const char *name, 
+	PathField *path, 
+	const char *id, 
+	const char *help,
+	const char *title,
+	const char *extensionFilter
+)
+{
+	ImGui::PushID(id);
+	parameter_common(name, help);
+	path->draw(title, extensionFilter, false);
+	ImGui::NextColumn();
+	ImGui::PopID();
+}
+
+static void parameter_saveFile
+(
+	const char *name,
+	PathField *path,
+	const char *id,
+	const char *help,
+	const char *title,
+	const char *extensionFilter
+)
+{
+	ImGui::PushID(id);
+	parameter_common(name, help);
+	path->draw(title, extensionFilter, true);
+	ImGui::NextColumn();
+	ImGui::PopID();
+}
+
+static void parameter(const char *name, size_t *v, const char *enumNames[], const size_t enumNamesCount, const char *id, const char *help)
+{
+	parameter_common(name, help);
+	ImGui::PushID(id);
+	if (ImGui::Button(enumNames[*v]))
+	{
+		ImGui::OpenPopup("EnumPopup");
+	}
+
+	if (ImGui::BeginPopup("EnumPopup"))
+	{
+		for (size_t i = 0; i < enumNamesCount; ++i)
+		{
+			if (ImGui::Selectable(enumNames[i]))
+			{
+				*v = i;
+			}
+		}
+		ImGui::EndPopup();
+	}
+	ImGui::NextColumn();
+	ImGui::PopID();
+}
+
+template <typename T>
+inline void parameter(const char *name, T *v, const char *enumNames[], const size_t enumNamesCount, const char *id, const char *help)
+{
+	size_t v1 = size_t(*v);
+	parameter(name, &v1, enumNames, enumNamesCount, id, help);
+	*v = T(v1);
 }
 
 class FornosUI
@@ -147,12 +330,10 @@ private:
 	enum NormalImport { Import = 0, ComputePerFace = 1, ComputePerVertex = 2 };
 
 	// Mesh data
-	std::string _lowPolyPath;
-	std::string _hiPolyPath;
+	PathField _lowPolyPath;
+	PathField _hiPolyPath;
 	NormalImport _lowPolyNormal;
 	NormalImport _hiPolyNormal;
-	ImGuiFs::Dialog _lowPolyDialog;
-	ImGuiFs::Dialog _hiPolyDialog;
 	int _bvhTrisPerNode;
 
 	// Texture data
@@ -162,16 +343,14 @@ private:
 	// Normals solver data
 	bool _normals_enabled;
 	bool _normals_tangentSpace;
-	std::string _normals_outputPath;
-	ImGuiFs::Dialog _normals_outputDialog;
+	PathField _normals_outputPath;
 
 	// AO solver data
 	bool _ao_enabled;
 	int _ao_sampleCount;
 	float _ao_minDistance;
 	float _ao_maxDistance;
-	std::string _ao_outputPath;
-	ImGuiFs::Dialog _ao_outputDialog;
+	PathField _ao_outputPath;
 
 	// Bent normals data
 	bool _bn_enabled;
@@ -179,19 +358,14 @@ private:
 	float _bn_minDistance;
 	float _bn_maxDistance;
 	bool _bn_tangentSpace;
-	std::string _bn_outputPath;
-	ImGuiFs::Dialog _bn_outputDialog;
+	PathField _bn_outputPath;
 
 	// Thickness solver data
 	bool _thickness_enabled;
 	int _thickness_sampleCount;
 	float _thickness_minDistance;
 	float _thickness_maxDistance;
-	std::string _thickness_outputPath;
-	ImGuiFs::Dialog _thickness_outputDialog;
-
-	// Aux
-	char _strBuff[2048];
+	PathField _thickness_outputPath;
 
 	// Errors
 	std::string _bakeErrors;
@@ -219,7 +393,6 @@ FornosUI::FornosUI()
 	, _bn_maxDistance(1.0f)
 	, _bn_tangentSpace(true)
 {
-	memset(_strBuff, 0, 2048);
 }
 
 void FornosUI::render()
@@ -249,10 +422,10 @@ void FornosUI::renderParameters()
 	renderParamsSolverThickness();
 
 	const bool readyToBake = 
-		(_thickness_enabled && !_thickness_outputPath.empty()) || 
-		(_normals_enabled && !_normals_outputPath.empty()) ||
-		(_ao_enabled && !_ao_outputPath.empty()) ||
-		(_bn_enabled && !_bn_outputPath.empty());
+		(_thickness_enabled && !_thickness_outputPath.get().empty()) ||
+		(_normals_enabled && !_normals_outputPath.get().empty()) ||
+		(_ao_enabled && !_ao_outputPath.get().empty()) ||
+		(_bn_enabled && !_bn_outputPath.get().empty());
 
 	if (!readyToBake)
 	{
@@ -283,138 +456,42 @@ void FornosUI::renderParamsShared()
 {
 	// Shared data
 	{
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 130);
+		parameters_begin();
 
 		// Low mesh
 		{
-			ImGui::Text("Low Mesh");
-			ImGui::SameLine();
-			ShowHelpMarker("Low resolution mesh file.\nWavefront OBJ files supported.");
-			ImGui::NextColumn();
-			strncpy_s(_strBuff, _lowPolyPath.c_str(), 2048);
-			if (ImGui::InputText("##lo", _strBuff, 2048))
-			{
-				_lowPolyPath = std::string(_strBuff);
-			}
-			ImGui::SameLine();
-			const bool pressed = ImGui::Button("...##lo");
-			const char *path = _lowPolyDialog.chooseFileDialog(
-				pressed,
-				nullptr,
-				".obj",
-				"Select Low-Poly Mesh",
-				ImVec2((float)windowWidth, (float)windowHeight),
-				ImVec2(0, 0));
-			if (strlen(path) != 0)
-			{
-				_lowPolyPath = std::string(path);
-			}
-			ImGui::NextColumn();
+			parameter_openFile("Low Mesh", &_lowPolyPath, "##lo",
+				"Low resolution mesh file.\n"
+				"Wavefront OBJ files supported.",
+				"Select Low-Poly Mesh", ".obj");
 
-			ImGui::Text("Normals");
-			ImGui::SameLine();
-			ShowHelpMarker("How the model normals are imported or computed.");
-			ImGui::NextColumn();
-
-			if (ImGui::Button(normalImportNames[(size_t)_lowPolyNormal]))
-			{
-				ImGui::OpenPopup("NormalsLo");
-			}
-
-			if (ImGui::BeginPopup("NormalsLo"))
-			{
-				for (size_t normalImportOptionIdx = 0; normalImportOptionIdx < 3; ++normalImportOptionIdx)
-				{
-					if (ImGui::Selectable(normalImportNames[normalImportOptionIdx]))
-					{
-						_lowPolyNormal = (NormalImport)normalImportOptionIdx;
-					}
-				}
-				ImGui::EndPopup();
-			}
-			ImGui::NextColumn();
+			parameter<NormalImport>("Normals", &_lowPolyNormal, normalImportNames, 3, "#lowPolyNormal",
+				"How the model normals are imported or computed.");
 		}
 
 		// Hi mesh
 		{
-			ImGui::Text("High Mesh");
-			ImGui::SameLine();
-			ShowHelpMarker("Optional high resolution mesh file.\nIf not setup it will bake the low resolution mesh.\nWavefront OBJ files supported.");
-			ImGui::NextColumn();
-			strncpy_s(_strBuff, _hiPolyPath.c_str(), 2048);
-			if (ImGui::InputText("##hi", _strBuff, 2048))
-			{
-				_hiPolyPath = std::string(_strBuff);
-			}
-			ImGui::SameLine();
-			const bool pressed = ImGui::Button("...##hi");
-			const char *path = _hiPolyDialog.chooseFileDialog(
-				pressed,
-				nullptr,
-				".obj",
-				"Select High-Poly Mesh",
-				ImVec2((float)windowWidth, (float)windowHeight),
-				ImVec2(0, 0));
-			if (strlen(path) != 0)
-			{
-				_hiPolyPath = std::string(path);
-			}
-			ImGui::NextColumn();
+			parameter_openFile("High Mesh", &_hiPolyPath, "##hi",
+				"Optional high resolution mesh file.\n"
+				"If not setup it will bake the low resolution mesh.\n"
+				"Wavefront OBJ files supported.",
+				"Select Hiigh-Poly Mesh", ".obj");
 
-			ImGui::Text("Normals");
-			ImGui::SameLine();
-			ShowHelpMarker("How the model normals are imported or computed.");
-			ImGui::NextColumn();
-
-			if (ImGui::Button(normalImportNames[(size_t)_lowPolyNormal]))
-			{
-				ImGui::OpenPopup("NormalsHi");
-			}
-
-			if (ImGui::BeginPopup("NormalsHi"))
-			{
-				for (size_t normalImportOptionIdx = 0; normalImportOptionIdx < 3; ++normalImportOptionIdx)
-				{
-					if (ImGui::Selectable(normalImportNames[normalImportOptionIdx]))
-					{
-						_hiPolyNormal = (NormalImport)normalImportOptionIdx;
-					}
-				}
-				ImGui::EndPopup();
-			}
-			ImGui::NextColumn();
+			parameter<NormalImport>("Normals", &_hiPolyNormal, normalImportNames, 3, "#hiPolyNormal",
+				"How the model normals are imported or computed.");
 		}
 
-		// Texture size
-		{
-			ImGui::Text("Tex Size");
-			ImGui::SameLine();
-			ShowHelpMarker("Texture output size (width x height).\nControl+click to edit the number.");
-			ImGui::NextColumn();
-			ImGui::PushItemWidth(100);
-			ImGui::DragInt("##TexW", &_texWidth, 32.0f, 256, 8192);
-			ImGui::PopItemWidth();
-			ImGui::SameLine();
-			ImGui::Text("x");
-			ImGui::SameLine();
-			ImGui::PushItemWidth(100);
-			ImGui::DragInt("##TexH", &_texHeight, 32.0f, 256, 8192);
-			ImGui::PopItemWidth();
-			ImGui::NextColumn();
-		}
+		parameter_texSize("Tex Size", &_texWidth, &_texHeight, "#texSize",
+			"Texture output size (width x height).\n"
+			"Control+click to edit the number.");
 
 		// Advance
 		{
-			ImGui::Text("BVH Tri. Count");
-			ImGui::SameLine();
-			ShowHelpMarker("Maximum number of triangles per BVH leaf node.");
-			ImGui::NextColumn();
-			ImGui::InputInt("##BvhTriCount", &_bvhTrisPerNode);
-			ImGui::NextColumn();
+			parameter("BVH Tri. Count", &_bvhTrisPerNode, "##BvhTriCount",
+				"Maximum number of triangles per BVH leaf node.");
 		}
 
-		ImGui::Columns(1);
+		parameters_end();
 	}
 }
 
@@ -433,67 +510,20 @@ void FornosUI::renderParamsSolverThickness()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 		}
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 130);
+		parameters_begin();
 
-		// Output
-		{
-			ImGui::Text("Output");
-			ImGui::SameLine();
-			ShowHelpMarker("Thickness image output file.");
-			ImGui::NextColumn();
-			strncpy_s(_strBuff, _thickness_outputPath.c_str(), 2048);
-			if (ImGui::InputText("##thicknessOutput", _strBuff, 2048))
-			{
-				_thickness_outputPath = std::string(_strBuff);
-			}
-			ImGui::SameLine();
-			const bool pressed = ImGui::Button("...##thicknessOutput");
-			const char *path = _thickness_outputDialog.chooseFileDialog(
-				pressed,
-				nullptr,
-				".png",
-				"Thickness Image",
-				ImVec2((float)windowWidth, (float)windowHeight),
-				ImVec2(0, 0));
-			if (strlen(path) != 0)
-			{
-				_thickness_outputPath = std::string(path);
-			}
-			ImGui::NextColumn();
-		}
+		parameter_saveFile("Output", &_thickness_outputPath, "##thickness",
+			"Thickness image output file.",
+			"Thickness Map", ".png");
 
-		// Sample count
-		{
-			ImGui::Text("Sample count");
-			ImGui::SameLine();
-			ShowHelpMarker("Number of samples.\nLarger = better & slower.");
-			ImGui::NextColumn();
-			ImGui::InputInt("##thicknessSampleCount", &_thickness_sampleCount);
-			ImGui::NextColumn();
-		}
+		parameter("Sample count", &_thickness_sampleCount, "##thicknessSampleCount",
+			"Number of samples.\nLarger = better & slower.");
+		parameter("Min distance", &_thickness_minDistance, "##thicknessMinDistance",
+			"Collisions closer than this value are ignored.");
+		parameter("Max distance", &_thickness_maxDistance, "##thicknessMaxDistance",
+			"Full thickness at this distance.");
 
-		// Min distance
-		{
-			ImGui::Text("Min distance");
-			ImGui::SameLine();
-			ShowHelpMarker("Collisions closer than this value are ignored.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##thicknessMinDistance", &_thickness_minDistance);
-			ImGui::NextColumn();
-		}
-
-		// Max distance
-		{
-			ImGui::Text("Max distance");
-			ImGui::SameLine();
-			ShowHelpMarker("Full thickness at this distance.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##thicknessMaxDistance", &_thickness_maxDistance);
-			ImGui::NextColumn();
-		}
-
-		ImGui::Columns(1);
+		parameters_end();
 
 		if (!_thickness_enabled)
 		{
@@ -520,67 +550,20 @@ void FornosUI::renderParamsSolverAO()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 		}
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 130);
+		parameters_begin();
 
-		// Output
-		{
-			ImGui::Text("Output");
-			ImGui::SameLine();
-			ShowHelpMarker("Ambient occlusion image output file.");
-			ImGui::NextColumn();
-			strncpy_s(_strBuff, _ao_outputPath.c_str(), 2048);
-			if (ImGui::InputText("##aoOutput", _strBuff, 2048))
-			{
-				_ao_outputPath = std::string(_strBuff);
-			}
-			ImGui::SameLine();
-			const bool pressed = ImGui::Button("...##aoOutput");
-			const char *path = _ao_outputDialog.chooseFileDialog(
-				pressed,
-				nullptr,
-				".png",
-				"Ambient Occlusion Image",
-				ImVec2((float)windowWidth, (float)windowHeight),
-				ImVec2(0, 0));
-			if (strlen(path) != 0)
-			{
-				_ao_outputPath = std::string(path);
-			}
-			ImGui::NextColumn();
-		}
+		parameter_saveFile("Output", &_ao_outputPath, "##ao",
+			"Ambient occlusion image output file.",
+			"Ambient Occlusion Map", ".png");
 
-		// Sample count
-		{
-			ImGui::Text("Sample count");
-			ImGui::SameLine();
-			ShowHelpMarker("Number of samples.\nLarger = better & slower.");
-			ImGui::NextColumn();
-			ImGui::InputInt("##aoSampleCount", &_ao_sampleCount);
-			ImGui::NextColumn();
-		}
+		parameter("Sample count", &_ao_sampleCount, "##aoSampleCount",
+			"Number of samples.\nLarger = better & slower.");
+		parameter("Min distance", &_ao_minDistance, "##aoMinDistance",
+			"Occluders closer than this value are ignored.");
+		parameter("Max distance", &_ao_maxDistance, "##aoMaxDistance",
+			"Max distance to consider occluders.");
 
-		// Min distance
-		{
-			ImGui::Text("Min distance");
-			ImGui::SameLine();
-			ShowHelpMarker("Occluders closer than this value are ignored.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##aoMinDistance", &_ao_minDistance);
-			ImGui::NextColumn();
-		}
-
-		// Max distance
-		{
-			ImGui::Text("Max distance");
-			ImGui::SameLine();
-			ShowHelpMarker("Max distance to consider occluders.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##aoMaxDistance", &_ao_maxDistance);
-			ImGui::NextColumn();
-		}
-
-		ImGui::Columns(1);
+		parameters_end();
 
 		if (!_ao_enabled)
 		{
@@ -607,77 +590,22 @@ void FornosUI::renderParamsSolverBentNormals()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 		}
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 130);
+		parameters_begin();
 
-		// Output
-		{
-			ImGui::Text("Output");
-			ImGui::SameLine();
-			ShowHelpMarker("Bent normals image output file.");
-			ImGui::NextColumn();
-			strncpy_s(_strBuff, _bn_outputPath.c_str(), 2048);
-			if (ImGui::InputText("##bnOutput", _strBuff, 2048))
-			{
-				_bn_outputPath = std::string(_strBuff);
-			}
-			ImGui::SameLine();
-			const bool pressed = ImGui::Button("...##bnOutput");
-			const char *path = _bn_outputDialog.chooseFileDialog(
-				pressed,
-				nullptr,
-				".png",
-				"Ambient Occlusion Image",
-				ImVec2((float)windowWidth, (float)windowHeight),
-				ImVec2(0, 0));
-			if (strlen(path) != 0)
-			{
-				_bn_outputPath = std::string(path);
-			}
-			ImGui::NextColumn();
-		}
+		parameter_saveFile("Output", &_bn_outputPath, "##bn",
+			"Bent normals image output file.",
+			"Bent Normals Map", ".png");
 
-		// Sample count
-		{
-			ImGui::Text("Sample count");
-			ImGui::SameLine();
-			ShowHelpMarker("Number of samples.\nLarger = better & slower.");
-			ImGui::NextColumn();
-			ImGui::InputInt("##bnSampleCount", &_bn_sampleCount);
-			ImGui::NextColumn();
-		}
+		parameter("Sample count", &_bn_sampleCount, "##bnSampleCount",
+			"Number of samples.\nLarger = better & slower.");
+		parameter("Min distance", &_bn_minDistance, "##bnMinDistance",
+			"Occluders closer than this value are ignored.");
+		parameter("Max distance", &_bn_maxDistance, "##bnMaxDistance",
+			"Occluders farther than this value are ignored.");
+		parameter("Tangent space", &_bn_tangentSpace, "#bnTanSpace",
+			"Compute normals in tangent space.");
 
-		// Min distance
-		{
-			ImGui::Text("Min distance");
-			ImGui::SameLine();
-			ShowHelpMarker("Occluders closer than this value are ignored.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##bnMinDistance", &_bn_minDistance);
-			ImGui::NextColumn();
-		}
-
-		// Max distance
-		{
-			ImGui::Text("Max distance");
-			ImGui::SameLine();
-			ShowHelpMarker("Occluders farther than this value are ignored.");
-			ImGui::NextColumn();
-			ImGui::InputFloat("##bnMaxDistance", &_bn_maxDistance);
-			ImGui::NextColumn();
-		}
-
-		// Tangent space
-		{
-			ImGui::Text("Tangent space");
-			ImGui::SameLine();
-			ShowHelpMarker("Compute normals in tangent space.");
-			ImGui::NextColumn();
-			ImGui::Checkbox("##bnTanspace", &_bn_tangentSpace);
-			ImGui::NextColumn();
-		}
-
-		ImGui::Columns(1);
+		parameters_end();
 
 		if (!_bn_enabled)
 		{
@@ -704,47 +632,17 @@ void FornosUI::renderParamsSolverNormals()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 		}
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 130);
+		parameters_begin();
 
-		// Tangent space
-		{
-			ImGui::Text("Tangent space");
-			ImGui::SameLine();
-			ShowHelpMarker("Computes tangent space normals if this is checked.\nOtherwise it generates object space normals.");
-			ImGui::NextColumn();
-			ImGui::Checkbox("##normalsTangentSpace", &_normals_tangentSpace);
-			ImGui::NextColumn();
-		}
+		parameter_saveFile("Output", &_normals_outputPath, "##normals",
+			"Normal map output file.",
+			"Normals Map", ".png");
 
-		// Output
-		{
-			ImGui::Text("Output");
-			ImGui::SameLine();
-			ShowHelpMarker("Normal map output file.");
-			ImGui::NextColumn();
-			strncpy_s(_strBuff, _normals_outputPath.c_str(), 2048);
-			if (ImGui::InputText("##normalsOutput", _strBuff, 2048))
-			{
-				_normals_outputPath = std::string(_strBuff);
-			}
-			ImGui::SameLine();
-			const bool pressed = ImGui::Button("...##normalsOutput");
-			const char *path = _normals_outputDialog.chooseFileDialog(
-				pressed,
-				nullptr,
-				".png",
-				"Normal map",
-				ImVec2((float)windowWidth, (float)windowHeight),
-				ImVec2(0, 0));
-			if (strlen(path) != 0)
-			{
-				_normals_outputPath = std::string(path);
-			}
-			ImGui::NextColumn();
-		}
+		parameter("Tangent space", &_normals_tangentSpace, "#normalsTanSpace",
+			"Computes tangent space normals if this is checked.\n"
+			"Otherwise it generates object space normals.");
 
-		ImGui::Columns(1);
+		parameters_end();
 
 		if (!_normals_enabled)
 		{
@@ -803,7 +701,7 @@ void FornosUI::startBaking()
 {
 	// TODO: Several of this steps can take long and they will freeze the UI
 
-	std::shared_ptr<Mesh> lowPolyMesh(Mesh::loadWavefrontObj(_lowPolyPath.c_str()));
+	std::shared_ptr<Mesh> lowPolyMesh(Mesh::loadWavefrontObj(_lowPolyPath.get().c_str()));
 	if (lowPolyMesh)
 	{
 		switch (_lowPolyNormal)
@@ -820,9 +718,9 @@ void FornosUI::startBaking()
 	}
 
 	std::shared_ptr<Mesh> hiPolyMesh = 
-		_hiPolyPath.empty() ? 
+		_hiPolyPath.get().empty() ? 
 		lowPolyMesh : 
-		std::shared_ptr<Mesh>(Mesh::loadWavefrontObj(_hiPolyPath.c_str()));
+		std::shared_ptr<Mesh>(Mesh::loadWavefrontObj(_hiPolyPath.get().c_str()));
 	if (hiPolyMesh && hiPolyMesh != lowPolyMesh)
 	{
 		switch (_hiPolyNormal)
@@ -863,7 +761,7 @@ void FornosUI::startBaking()
 		params.maxDistance = _thickness_maxDistance;
 		std::unique_ptr<ThicknessSolver> thicknessSolver(new ThicknessSolver(params));
 		thicknessSolver->init(compressedMap, meshMapping);
-		tasks.emplace_back(new ThicknessTask(std::move(thicknessSolver), _thickness_outputPath.c_str()));
+		tasks.emplace_back(new ThicknessTask(std::move(thicknessSolver), _thickness_outputPath.get().c_str()));
 	}
 
 	if (_bn_enabled)
@@ -875,7 +773,7 @@ void FornosUI::startBaking()
 		params.tangentSpace = _bn_tangentSpace;
 		std::unique_ptr<BentNormalsSolver> solver(new BentNormalsSolver(params));
 		solver->init(compressedMap, meshMapping);
-		tasks.emplace_back(new BentNormalsTask(std::move(solver), _bn_outputPath.c_str()));
+		tasks.emplace_back(new BentNormalsTask(std::move(solver), _bn_outputPath.get().c_str()));
 	}
 
 
@@ -887,7 +785,7 @@ void FornosUI::startBaking()
 		params.maxDistance = _ao_maxDistance;
 		std::unique_ptr<AmbientOcclusionSolver> solver(new AmbientOcclusionSolver(params));
 		solver->init(compressedMap, meshMapping);
-		tasks.emplace_back(new AmbientOcclusionTask(std::move(solver), _ao_outputPath.c_str()));
+		tasks.emplace_back(new AmbientOcclusionTask(std::move(solver), _ao_outputPath.get().c_str()));
 	}
 
 	if (_normals_enabled)
@@ -896,7 +794,7 @@ void FornosUI::startBaking()
 		params.tangentSpace = _normals_tangentSpace;
 		std::unique_ptr<NormalsSolver> normalsSolver(new NormalsSolver(params));
 		normalsSolver->init(compressedMap, meshMapping);
-		tasks.emplace_back(new NormalsTask(std::move(normalsSolver), _normals_outputPath.c_str()));
+		tasks.emplace_back(new NormalsTask(std::move(normalsSolver), _normals_outputPath.get().c_str()));
 	}
 
 	tasks.emplace_back(new MeshMappingTask(meshMapping));
