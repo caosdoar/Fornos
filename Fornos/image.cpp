@@ -234,8 +234,8 @@ void exportNormalImage(const Vector3 *data, const CompressedMapUV *map, const ch
 			const size_t y = index / w;
 			const size_t pixidx = ((h - y - 1) * w + x) * 3;
 			rgb[pixidx + 0] = uint8_t(n.x * 255.0f);
-			rgb[pixidx + 1] = uint8_t(n.x * 255.0f);
-			rgb[pixidx + 2] = uint8_t(n.x * 255.0f);
+			rgb[pixidx + 1] = uint8_t(n.y * 255.0f);
+			rgb[pixidx + 2] = uint8_t(n.z * 255.0f);
 		}
 
 		if (ext == Extension::Png) stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);
