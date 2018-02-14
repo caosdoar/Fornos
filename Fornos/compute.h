@@ -44,6 +44,36 @@ inline GLuint CreateComputeProgram(const char *path)
 	return program;
 }
 
+inline GLuint CreateComputeProgramFromMemory(const char *src)
+{
+	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+
+	glShaderSource(shader, 1, &src, nullptr);
+	glCompileShader(shader);
+
+#if 1
+	{
+		GLint compiled;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if (compiled != GL_TRUE)
+		{
+			const size_t buffSize = 2048;
+			char *buff = new char[buffSize];
+			GLsizei length;
+			glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
+			std::cerr << buff << std::endl;
+			//assert(false);
+		}
+	}
+#endif
+
+	GLuint program = glCreateProgram();
+	glAttachShader(program, shader);
+	glLinkProgram(program);
+
+	return program;
+}
+
 template <typename T>
 class ComputeBuffer
 {

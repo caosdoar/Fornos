@@ -142,6 +142,7 @@
     <ClCompile Include="..\3rdParty\tinyexr\tinyexr.cc" />
     <ClCompile Include="bvh.cpp" />
     <ClCompile Include="compute.cpp" />
+    <ClCompile Include="computeshaders.cpp" />
     <ClCompile Include="fornos.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -154,6 +155,8 @@
   <ItemGroup>
     <ClInclude Include="bvh.h" />
     <ClInclude Include="compute.h" />
+    <ClInclude Include="computeshaders.h" />
+    <ClInclude Include="computeshaders_content.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="Mesh.h" />

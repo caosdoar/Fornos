@@ -1,5 +1,6 @@
 #include "meshmapping.h"
 #include "bvh.h"
+#include "computeshaders.h"
 #include "mesh.h"
 #include <cassert>
 
@@ -98,49 +99,6 @@ namespace
 		}
 		bvhs[index].jump = (uint32_t)bvhs.size();
 	}
-
-	GLuint CreateComputeProgram(const std::vector<const char *> &paths)
-	{
-		GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
-
-		std::vector<const char *> shaders;
-
-		for (auto path : paths)
-		{
-			std::ifstream ifs(path);
-			std::string src((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-			char *shader = new char[src.size() + 1];
-			strcpy_s(shader, src.size() + 1, src.c_str());
-			shaders.emplace_back(shader);
-		}
-
-		glShaderSource(shader, 1, &shaders[0], nullptr);
-		glCompileShader(shader);
-
-		for (auto s : shaders) delete[] s;
-
-#if 1
-		{
-			GLint compiled;
-			glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-			if (compiled != GL_TRUE)
-			{
-				const size_t buffSize = 2048;
-				char *buff = new char[buffSize];
-				GLsizei length;
-				glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
-				std::cerr << buff << std::endl;
-				assert(false);
-			}
-		}
-#endif
-
-		GLuint program = glCreateProgram();
-		glAttachShader(program, shader);
-		glLinkProgram(program);
-
-		return program;
-	}
 }
 
 void MeshMapping::init
@@ -191,10 +149,7 @@ void MeshMapping::init
 
 	// Shader
 	{
-		_program = CreateComputeProgram
-		({
-			"D:\\Code\\Fornos\\Fornos\\shaders\\meshmapping_.comp"
-		});
+		_program = LoadComputeShader_MeshMapping();
 	}
 
 	_workOffset = 0;

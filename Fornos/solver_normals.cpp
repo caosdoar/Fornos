@@ -1,6 +1,7 @@
 #include "solver_normals.h"
 #include "bvh.h"
 #include "compute.h"
+#include "computeshaders.h"
 #include "image.h"
 #include "math.h"
 #include "mesh.h"
@@ -12,8 +13,8 @@ static const size_t k_workPerFrame = 1024 * 128;
 
 void NormalsSolver::init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<MeshMapping> meshMapping)
 {
-	_normalsProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\normals.comp");
-	_tanspaceProgram = CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\tangentspace.comp");
+	_normalsProgram = LoadComputeShader_Normal();
+	_tanspaceProgram = LoadComputeShader_ToTangentSpace();
 	_uvMap = map;
 	_meshMapping = meshMapping;
 	_workCount = ((map->positions.size() + k_groupSize - 1) / k_groupSize) * k_groupSize;
@@ -31,22 +32,18 @@ bool NormalsSolver::runStep()
 	const size_t work = workLeft < k_workPerFrame ? workLeft : k_workPerFrame;
 	assert(work % k_groupSize == 0);
 
-	{
-		glUseProgram(_normalsProgram);
-
-		glUniform1ui(1, (GLuint)_workOffset);
-		glUniform1ui(2, (GLuint)_meshMapping->meshBVH()->size());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
-		if (_meshMapping->pixelst()) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _meshMapping->pixelst()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _meshMapping->meshNormals()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _meshMapping->meshBVH()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, _meshMapping->coords()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, _meshMapping->coords_tidx()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsCB->bo());
-
-		glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
-	}
+	glUseProgram(_normalsProgram);
+	glUniform1ui(1, (GLuint)_workOffset);
+	glUniform1ui(2, (GLuint)_meshMapping->meshBVH()->size());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
+	if (_meshMapping->pixelst()) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _meshMapping->pixelst()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _meshMapping->meshNormals()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _meshMapping->meshBVH()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, _meshMapping->coords()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, _meshMapping->coords_tidx()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsCB->bo());
+	glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
 
 	if (_params.tangentSpace)
 	{
