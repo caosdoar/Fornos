@@ -4,28 +4,6 @@
 
 layout (local_size_x = 64) in;
 
-#define BUFFER_PARAMS 3
-#define BUFFER_POSITIONS 12
-#define BUFFER_NORMALS 7
-#define BUFFER_COORDS 9
-#define BUFFER_TIDX 10
-#define BUFFER_OUTPUT 11
-
-#define FLT_MAX 3.402823466e+38
-
-struct Params
-{
-	uint sampleCount; // Number of rays to sample
-	float minDistance;
-	float maxDistance;
-};
-
-struct Pixel
-{
-	vec3 p;
-	vec3 n;
-};
-
 struct Output
 {
 	vec3 o;
@@ -35,12 +13,11 @@ struct Output
 };
 
 layout(location = 1) uniform uint pixOffset;
-layout(std430, binding = BUFFER_PARAMS) readonly buffer paramsBuffer { Params params; };
-layout(std430, binding = BUFFER_POSITIONS) readonly buffer meshPBuffer { vec3 positions[]; };
-layout(std430, binding = BUFFER_NORMALS) readonly buffer meshNBuffer { vec3 normals[]; };
-layout(std430, binding = BUFFER_COORDS) readonly buffer coordsBuffer { vec4 coords[]; };
-layout(std430, binding = BUFFER_TIDX) readonly buffer coordsTidxBuffer { uint coords_tidx[]; };
-layout(std430, binding = BUFFER_OUTPUT) writeonly buffer outputBuffer { Output outputs[]; };
+layout(std430, binding = 2) readonly buffer meshPBuffer { vec3 positions[]; };
+layout(std430, binding = 3) readonly buffer meshNBuffer { vec3 normals[]; };
+layout(std430, binding = 4) readonly buffer coordsBuffer { vec4 coords[]; };
+layout(std430, binding = 5) readonly buffer coordsTidxBuffer { uint coords_tidx[]; };
+layout(std430, binding = 6) writeonly buffer outputBuffer { Output outputs[]; };
 
 // Gets the position from the triangle index and the barycentric coordinates
 vec3 getPosition(uint tidx, vec3 bcoord)

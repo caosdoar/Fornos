@@ -48,9 +48,9 @@ private:
 	struct ShaderParams
 	{
 		uint32_t sampleCount;
+		uint32_t samplePermCount;
 		float minDistance;
 		float maxDistance;
-		float _pad0;
 	};
 
 	struct RayData

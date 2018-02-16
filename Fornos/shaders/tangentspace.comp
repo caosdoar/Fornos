@@ -4,8 +4,6 @@
 
 layout (local_size_x = 64) in;
 
-#define FLT_MAX 3.402823466e+38
-
 #define TANGENT_SPACE 1
 
 struct Pixel
@@ -23,9 +21,9 @@ struct PixelT
 struct V3 { float x; float y; float z; };
 
 layout(location = 1) uniform uint workOffset;
-layout(std430, binding = 4) readonly buffer pixBuffer { Pixel pixels[]; };
-layout(std430, binding = 5) readonly buffer pixtBuffer { PixelT pixelst[]; };
-layout(std430, binding = 11) buffer resultBuffer { V3 results[]; };
+layout(std430, binding = 2) readonly buffer pixBuffer { Pixel pixels[]; };
+layout(std430, binding = 3) readonly buffer pixtBuffer { PixelT pixelst[]; };
+layout(std430, binding = 4) buffer resultBuffer { V3 results[]; };
 
 void main()
 {

@@ -16,6 +16,8 @@
 #include "meshmapping.h"
 #include "solver_ao.h"
 #include "solver_bentnormals.h"
+#include "solver_height.h"
+#include "solver_position.h"
 #include "solver_normals.h"
 #include "solver_thickness.h"
 
@@ -318,6 +320,8 @@ public:
 protected:
 	void renderParameters();
 	void renderParamsShared();
+	void renderParamsSolverHeight();
+	void renderParamsSolverPositions();
 	void renderParamsSolverNormals();
 	void renderParamsSolverAO();
 	void renderParamsSolverBentNormals();
@@ -339,6 +343,14 @@ private:
 	// Texture data
 	int _texWidth;
 	int _texHeight;
+
+	// Height solver data
+	bool _height_enabled;
+	PathField _height_outputPath;
+
+	// Positions solver data
+	bool _positions_enabled;
+	PathField _positions_outputPath;
 
 	// Normals solver data
 	bool _normals_enabled;
@@ -381,6 +393,8 @@ FornosUI::FornosUI()
 	, _thickness_sampleCount(256)
 	, _thickness_minDistance(0.1f)
 	, _thickness_maxDistance(1.0f)
+	, _height_enabled(false)
+	, _positions_enabled(false)
 	, _normals_enabled(false)
 	, _normals_tangentSpace(true)
 	, _ao_enabled(false)
@@ -416,6 +430,8 @@ void FornosUI::renderParameters()
 		ImGuiWindowFlags_NoMove);
 
 	renderParamsShared();
+	renderParamsSolverHeight();
+	renderParamsSolverPositions();
 	renderParamsSolverNormals();
 	renderParamsSolverAO();
 	renderParamsSolverBentNormals();
@@ -423,6 +439,8 @@ void FornosUI::renderParameters()
 
 	const bool readyToBake = 
 		(_thickness_enabled && !_thickness_outputPath.get().empty()) ||
+		(_height_enabled && !_height_outputPath.get().empty()) ||
+		(_positions_enabled && !_positions_outputPath.get().empty()) ||
 		(_normals_enabled && !_normals_outputPath.get().empty()) ||
 		(_ao_enabled && !_ao_outputPath.get().empty()) ||
 		(_bn_enabled && !_bn_outputPath.get().empty());
@@ -566,6 +584,72 @@ void FornosUI::renderParamsSolverAO()
 		parameters_end();
 
 		if (!_ao_enabled)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+	}
+
+	ImGui::PopID();
+}
+
+void FornosUI::renderParamsSolverHeight()
+{
+	ImGui::PushID("HeightsSolver");
+
+	bool expanded = ImGui::CollapsingHeader("Height", ImGuiTreeNodeFlags_AllowItemOverlap);
+	ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+	ImGui::Checkbox("", &_height_enabled);
+	if (expanded)
+	{
+		if (!_height_enabled)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		}
+
+		parameters_begin();
+
+		parameter_saveFile("Output", &_height_outputPath, "##height",
+			"Height image output file.",
+			"Height Map", ".png;.tga;.exr");
+
+		parameters_end();
+
+		if (!_height_enabled)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+	}
+
+	ImGui::PopID();
+}
+
+void FornosUI::renderParamsSolverPositions()
+{
+	ImGui::PushID("PositionsSolver");
+
+	bool expanded = ImGui::CollapsingHeader("Position", ImGuiTreeNodeFlags_AllowItemOverlap);
+	ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+	ImGui::Checkbox("", &_positions_enabled);
+	if (expanded)
+	{
+		if (!_positions_enabled)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		}
+
+		parameters_begin();
+
+		parameter_saveFile("Output", &_positions_outputPath, "##pos",
+			"Positions image output file.",
+			"Positions Map", ".png;.tga;.exr");
+
+		parameters_end();
+
+		if (!_positions_enabled)
 		{
 			ImGui::PopItemFlag();
 			ImGui::PopStyleVar();
@@ -795,6 +879,20 @@ void FornosUI::startBaking()
 		std::unique_ptr<NormalsSolver> normalsSolver(new NormalsSolver(params));
 		normalsSolver->init(compressedMap, meshMapping);
 		tasks.emplace_back(new NormalsTask(std::move(normalsSolver), _normals_outputPath.get().c_str()));
+	}
+
+	if (_positions_enabled)
+	{
+		std::unique_ptr<PositionSolver> solver(new PositionSolver());
+		solver->init(compressedMap, meshMapping);
+		tasks.emplace_back(new PositionTask(std::move(solver), _positions_outputPath.get().c_str()));
+	}
+
+	if (_height_enabled)
+	{
+		std::unique_ptr<HeightSolver> solver(new HeightSolver());
+		solver->init(compressedMap, meshMapping);
+		tasks.emplace_back(new HeightTask(std::move(solver), _height_outputPath.get().c_str()));
 	}
 
 	tasks.emplace_back(new MeshMappingTask(meshMapping));

@@ -1,0 +1,19 @@
+#version 430 core
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_shader_storage_buffer_object : enable
+
+layout (local_size_x = 64) in;
+
+#define FLT_MAX 3.402823466e+38
+
+layout(location = 1) uniform uint workOffset;
+layout(std430, binding = 2) readonly buffer coordsBuffer { vec4 coords[]; };
+layout(std430, binding = 3) writeonly buffer resultBuffer { float results[]; };
+
+void main()
+{
+	uint gid = gl_GlobalInvocationID.x + workOffset;
+	vec4 coord = coords[gid];
+	float height = coord.x;
+	results[gid] = height != FLT_MAX ? height : 0;
+}

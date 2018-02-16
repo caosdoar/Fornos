@@ -26,6 +26,7 @@ void BentNormalsSolver::init(std::shared_ptr<const CompressedMapUV> map, std::sh
 	_bentnormalsProgram = LoadComputeShader_BN_Sampling();
 	_avgProgram = LoadComputeShader_BN_Aggregate();
 	_tanspaceProgram = LoadComputeShader_ToTangentSpace();
+
 	_uvMap = map;
 	_meshMapping = meshMapping;
 	_workCount = ((map->positions.size() + k_groupSize - 1) / k_groupSize) * k_groupSize;
@@ -33,6 +34,7 @@ void BentNormalsSolver::init(std::shared_ptr<const CompressedMapUV> map, std::sh
 	{
 		ShaderParams params;
 		params.sampleCount = (uint32_t)_params.sampleCount;
+		params.samplePermCount = (uint32_t)k_samplePermCount;
 		params.minDistance = _params.minDistance;
 		params.maxDistance = _params.maxDistance;
 		_paramsCB = std::unique_ptr<ComputeBuffer<ShaderParams> >(
@@ -68,34 +70,31 @@ bool BentNormalsSolver::runStep()
 
 	glUseProgram(_rayProgram);
 	glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _meshMapping->meshNormals()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, _meshMapping->coords()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, _meshMapping->coords_tidx()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _rayDataCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _meshMapping->meshPositions()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _meshMapping->meshNormals()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->coords()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _meshMapping->coords_tidx()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, _rayDataCB->bo());
 	glDispatchCompute((GLuint)(work / _params.sampleCount / k_groupSize), 1, 1);
 
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	glUseProgram(_bentnormalsProgram);
 	glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
 	glUniform1ui(2, (GLuint)_meshMapping->meshBVH()->size());
-	glUniform1ui(14, (GLuint)k_samplePermCount);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, _meshMapping->meshPositions()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _meshMapping->meshBVH()->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, _samplesCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, _rayDataCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsMiddleCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->meshPositions()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _meshMapping->meshBVH()->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, _samplesCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _rayDataCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _resultsMiddleCB->bo());
 	glDispatchCompute((GLuint)(work / k_groupSize), 1, 1);
 
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	glUseProgram(_avgProgram);
 	glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _paramsCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _resultsMiddleCB->bo());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _resultsFinalCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _paramsCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _resultsMiddleCB->bo());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _resultsFinalCB->bo());
 	glDispatchCompute((GLuint)(work / _params.sampleCount / k_groupSize), 1, 1);
 
 	if (_params.tangentSpace)
@@ -103,9 +102,9 @@ bool BentNormalsSolver::runStep()
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		glUseProgram(_tanspaceProgram);
 		glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _meshMapping->pixels()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _meshMapping->pixelst()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, _resultsFinalCB->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _meshMapping->pixels()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _meshMapping->pixelst()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _resultsFinalCB->bo());
 		glDispatchCompute((GLuint)(work / _params.sampleCount / k_groupSize), 1, 1);
 	}
 

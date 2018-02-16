@@ -16,6 +16,7 @@ layout (local_size_x = 64) in;
 struct Params
 {
 	uint sampleCount; // Number of rays to sample
+	uint samplePermCount;
 	float minDistance;
 	float maxDistance;
 };
@@ -39,13 +40,12 @@ struct Input
 
 layout(location = 1) uniform uint pixOffset;
 layout(location = 2) uniform uint bvhCount;
-layout(location = 14) uniform uint samplePermCount;
-layout(std430, binding = BUFFER_PARAMS) readonly buffer paramsBuffer { Params params; };
-layout(std430, binding = BUFFER_POSITIONS) readonly buffer meshPBuffer { vec3 positions[]; };
-layout(std430, binding = BUFFER_BVH) readonly buffer bvhBuffer { BVH bvhs[]; };
-layout(std430, binding = BUFFER_SAMPLES) readonly buffer samplesBuffer { vec3 samples[]; };
-layout(std430, binding = BUFFER_INPUTS) readonly buffer inputsBuffer { Input inputs[]; };
-layout(std430, binding = BUFFER_RESULTS_ACC) writeonly buffer resultAccBuffer { vec3 results[]; };
+layout(std430, binding = 3) readonly buffer paramsBuffer { Params params; };
+layout(std430, binding = 4) readonly buffer meshPBuffer { vec3 positions[]; };
+layout(std430, binding = 5) readonly buffer bvhBuffer { BVH bvhs[]; };
+layout(std430, binding = 6) readonly buffer samplesBuffer { vec3 samples[]; };
+layout(std430, binding = 7) readonly buffer inputsBuffer { Input inputs[]; };
+layout(std430, binding = 8) writeonly buffer resultAccBuffer { vec3 results[]; };
 
 float RayAABB(vec3 o, vec3 d, vec3 mins, vec3 maxs)
 {
@@ -162,7 +162,7 @@ void main()
 	vec3 tx = idata.tx;
 	vec3 ty = idata.ty;
 
-	uint sidx = (pix_idx % samplePermCount) * params.sampleCount + sample_idx;
+	uint sidx = (pix_idx % params.samplePermCount) * params.sampleCount + sample_idx;
 	vec3 rs = samples[sidx];
 	vec3 sampleDir = normalize(tx * rs.x + ty * rs.y + d * rs.z);
 

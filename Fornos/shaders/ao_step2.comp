@@ -12,9 +12,9 @@ struct Params
 };
 
 layout(location = 1) uniform uint workOffset;
-layout(std430, binding = 3) readonly buffer paramsBuffer { Params params; };
-layout(std430, binding = 4) readonly buffer dataBuffer { float data[]; };
-layout(std430, binding = 5) writeonly buffer resultAccBuffer { float results[]; };
+layout(std430, binding = 2) readonly buffer paramsBuffer { Params params; };
+layout(std430, binding = 3) readonly buffer dataBuffer { float data[]; };
+layout(std430, binding = 4) writeonly buffer resultAccBuffer { float results[]; };
 
 void main()
 { 

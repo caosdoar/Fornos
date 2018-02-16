@@ -94,6 +94,24 @@ GLuint LoadComputeShader_Thick_Aggregate()
 #endif
 }
 
+GLuint LoadComputeShader_Height()
+{
+#if COMPUTE_SHADER_FROM_FILES
+	return CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\heights.comp");
+#else
+	return CreateComputeProgramFromMemory(heights_comp);
+#endif
+}
+
+GLuint LoadComputeShader_Position()
+{
+#if COMPUTE_SHADER_FROM_FILES
+	return CreateComputeProgram("D:\\Code\\Fornos\\Fornos\\shaders\\positions.comp");
+#else
+	return CreateComputeProgramFromMemory(positions_comp);
+#endif
+}
+
 GLuint LoadComputeShader_Normal()
 {
 #if COMPUTE_SHADER_FROM_FILES

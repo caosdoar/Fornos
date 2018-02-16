@@ -16,6 +16,8 @@ GLuint LoadComputeShader_Thick_GenData();
 GLuint LoadComputeShader_Thick_Sampling();
 GLuint LoadComputeShader_Thick_Aggregate();
 
+GLuint LoadComputeShader_Height();
+GLuint LoadComputeShader_Position();
 GLuint LoadComputeShader_Normal();
 
 GLuint LoadComputeShader_ToTangentSpace();

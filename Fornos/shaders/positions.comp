@@ -4,8 +4,12 @@
 
 layout (local_size_x = 64) in;
 
+#define FLT_MAX 3.402823466e+38
+
+#define TANGENT_SPACE 0
+
 layout(location = 1) uniform uint workOffset;
-layout(std430, binding = 2) readonly buffer meshNBuffer { vec3 normals[]; };
+layout(std430, binding = 2) readonly buffer meshPBuffer { vec3 positions[]; };
 layout(std430, binding = 3) readonly buffer coordsBuffer { vec4 coords[]; };
 layout(std430, binding = 4) readonly buffer coordsTidxBuffer { uint coords_tidx[]; };
 layout(std430, binding = 5) writeonly buffer resultBuffer { float results[]; };
@@ -16,13 +20,13 @@ void main()
 
 	vec4 coord = coords[gid];
 	uint tidx = coords_tidx[gid];
-	vec3 n0 = normals[tidx + 0];
-	vec3 n1 = normals[tidx + 1];
-	vec3 n2 = normals[tidx + 2];
-	vec3 normal = normalize(coord.y * n0 + coord.z * n1 + coord.w * n2);
+	vec3 p0 = positions[tidx + 0];
+	vec3 p1 = positions[tidx + 1];
+	vec3 p2 = positions[tidx + 2];
+	vec3 p = coord.y * p0 + coord.z * p1 + coord.w * p2;
 
 	uint ridx = gid * 3;
-	results[ridx + 0] = normal.x;
-	results[ridx + 1] = normal.y;
-	results[ridx + 2] = normal.z;
+	results[ridx + 0] = p.x;
+	results[ridx + 1] = p.y;
+	results[ridx + 2] = p.z;
 }
