@@ -75,6 +75,9 @@
     <ClCompile Include="solver_position.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fornosui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h">
@@ -123,6 +126,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="solver_position.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fornosui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fornos.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

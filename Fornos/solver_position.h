@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include "compute.h"
+#include "fornos.h"
 #include "timing.h"
 #include <memory>
 

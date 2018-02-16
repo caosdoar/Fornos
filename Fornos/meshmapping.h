@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include "compute.h"
+#include "fornos.h"
 #include "math.h"
 #include "timing.h"
 #include <cstdint>

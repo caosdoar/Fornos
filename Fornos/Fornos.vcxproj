@@ -121,6 +121,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;D:\Code\Fornos\3rdParty\tinyexr;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -144,6 +145,7 @@
     <ClCompile Include="compute.cpp" />
     <ClCompile Include="computeshaders.cpp" />
     <ClCompile Include="fornos.cpp" />
+    <ClCompile Include="fornosui.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="meshmapping.cpp" />
@@ -159,6 +161,8 @@
     <ClInclude Include="compute.h" />
     <ClInclude Include="computeshaders.h" />
     <ClInclude Include="computeshaders_content.h" />
+    <ClInclude Include="fornos.h" />
+    <ClInclude Include="fornosui.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="Mesh.h" />

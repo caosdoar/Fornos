@@ -316,29 +316,7 @@ struct CompressedMapUV
 	CompressedMapUV(const MapUV *map);
 };
 
-//Vector2 ExportFloatMap(const float *data, const size_t w, const size_t h, const char *path);
-
-class FornosTask
-{
-public:
-	virtual ~FornosTask() {}
-	virtual bool runStep() = 0;
-	virtual void finish() = 0;
-	virtual float progress() const = 0;
-	virtual const char* name() const = 0;
-};
-
 // Shared compute shader structures
-
-struct RayGPUData
-{
-	Vector3 o;
-	float _pad0;
-	Vector3 d;
-	float _pad1;
-	RayGPUData() {}
-	RayGPUData(const Ray &r) : o(r.origin), d(r.direction) {}
-};
 
 struct BVHGPUData
 {
