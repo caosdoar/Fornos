@@ -14,6 +14,8 @@ layout (local_size_x = 64) in;
 #define RAYCAST_BACKWARD 1
 
 #define FLT_MAX 3.402823466e+38
+#define BARY_MIN -1e-3
+#define BARY_MAX 1.0
 
 struct Pix
 {
@@ -84,9 +86,9 @@ vec4 raycast(vec3 o, vec3 d, vec3 a, vec3 b, vec3 c)
 		{
 			vec3 p = o + d * t;
 			vec3 b = barycentric(p, a, b, c);
-			if (b.x >= 0 && //b.x <= 1 && 
-				b.y >= 0 && b.y <= 1 && 
-				b.z >= 0 && b.z <= 1)
+			if (b.x >= BARY_MIN && //b.x <= 1 && 
+				b.y >= BARY_MIN && b.y <= BARY_MAX && 
+				b.z >= BARY_MIN && b.z <= BARY_MAX)
 			{
 				return vec4(t, b.x, b.y, b.z);
 			}
