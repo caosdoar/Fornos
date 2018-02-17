@@ -38,6 +38,8 @@ public:
 
 public:
 	static Mesh* loadWavefrontObj(const char *path);
+	static Mesh* loadPly(const char *path);
+	static Mesh* loadFile(const char *path);
 
 	void computeFaceNormals();
 	void computeVertexNormals();

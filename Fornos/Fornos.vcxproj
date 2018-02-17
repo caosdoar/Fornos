@@ -87,7 +87,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;D:\Code\Fornos\3rdParty\tinyexr;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;D:\Code\Fornos\3rdParty\tinyexr;D:\Code\Fornos\3rdParty\tinyply;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -120,7 +120,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;D:\Code\Fornos\3rdParty\tinyexr;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Code\Fornos\3rdParty\glad\include;D:\Code\Fornos\3rdParty\glfw\include;D:\Code\Fornos\3rdParty\imgui;D:\Code\Fornos\3rdParty\imgui\addons\imguifilesystem;D:\Code\Fornos\3rdParty\tinyexr;D:\Code\Fornos\3rdParty\tinyply;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -141,6 +141,7 @@
     <ClCompile Include="..\3rdParty\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\3rdParty\imgui\imgui_impl_glfw_gl3.cpp" />
     <ClCompile Include="..\3rdParty\tinyexr\tinyexr.cc" />
+    <ClCompile Include="..\3rdParty\tinyply\tinyply.cpp" />
     <ClCompile Include="bvh.cpp" />
     <ClCompile Include="compute.cpp" />
     <ClCompile Include="computeshaders.cpp" />

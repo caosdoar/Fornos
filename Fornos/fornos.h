@@ -111,8 +111,8 @@ class FornosRunner
 public:
 	bool start(const FornosParameters &params, std::string &errors);
 	bool pending() const { return !_tasks.empty(); }
-	FornosTask* currentTask() const { return _tasks.empty() ? nullptr : _tasks.back(); }
-	void moveToNextTask() { _tasks.pop_back(); }
+	void run();
+	const FornosTask* currentTask() const { return _tasks.empty() ? nullptr : _tasks.back(); }
 
 private:
 	std::vector<FornosTask*> _tasks;

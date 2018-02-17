@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include <tinyply.h>
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
@@ -334,76 +335,6 @@ Mesh* Mesh::loadWavefrontObj(const char *path)
 
 	ifs.close();
 
-#if 0
-	// Transform to a useful format
-	struct OutputVertex
-	{
-		float x, y, z;
-		float u, v, w;
-		float i, j, k;
-	};
-
-	std::vector<OutputVertex> verticesOut;
-	std::vector<uint32_t> indicesOut;
-	std::map<WavefrontFaceVertex, uint32_t> vertexIndices;
-
-	for (const auto &face : faces)
-	{
-		uint32_t firstVertexIdx = UINT32_MAX;
-		uint32_t previousVertexIdx = UINT32_MAX;
-
-		for (size_t i = 0; i < face.vertexCount; ++i)
-		{
-			uint32_t vertexIdx = UINT32_MAX;
-			{
-				const auto &v = faceVertices[face.start + i];
-				auto it = vertexIndices.find(v);
-				if (it == vertexIndices.end())
-				{
-					const auto p = vertices[v.vertexIndex - 1];
-					const auto t = v.texcoordIndex != 0 ? texcoords[v.texcoordIndex - 1] : WavefrontTexcoord{ 0.0f, 0.0f, 0.0f };
-					const auto n = v.normalIndex != 0 ? normals[v.normalIndex - 1] : WavefrontNormal{ 0.0f, 0.0f, 0.0f };
-					vertexIdx = (uint32_t)verticesOut.size();
-					vertexIndices[v] = vertexIdx;
-					verticesOut.emplace_back(OutputVertex{ p.x, p.y, p.z, t.u, t.v, t.w, n.i, n.j, n.k });
-				}
-				else
-				{
-					vertexIdx = it->second;
-				}
-			}
-
-			if (firstVertexIdx == UINT32_MAX)
-			{
-				firstVertexIdx = vertexIdx;
-			}
-			else if (previousVertexIdx == UINT32_MAX)
-			{
-				previousVertexIdx = vertexIdx;
-			}
-			else
-			{
-				indicesOut.emplace_back(firstVertexIdx);
-				indicesOut.emplace_back(previousVertexIdx);
-				indicesOut.emplace_back(vertexIdx);
-				previousVertexIdx = vertexIdx;
-			}
-		}
-	}
-
-	// Mesh data
-	Mesh* mesh = new Mesh();
-	mesh->positions.reserve(indicesOut.size());
-	mesh->texcoords.reserve(indicesOut.size());
-	mesh->normals.reserve(indicesOut.size());
-	for (const auto index : indicesOut)
-	{
-		const auto &vertex = verticesOut[index];
-		mesh->positions.push_back(Vector3(vertex.x, vertex.y, vertex.z));
-		mesh->texcoords.push_back(Vector2(vertex.u, vertex.v));
-		mesh->normals.push_back(Vector3(vertex.i, vertex.j, vertex.k));
-	}
-#else
 	Mesh *mesh = new Mesh();
 	
 	mesh->positions.reserve(vertices.size());
@@ -457,9 +388,168 @@ Mesh* Mesh::loadWavefrontObj(const char *path)
 		}
 	}
 
-#endif
-
 	return mesh;
+}
+
+namespace
+{
+	void copyPlyData(std::shared_ptr<tinyply::PlyData> src, std::vector<Vector3> &dst)
+	{
+		dst.clear();
+		dst.reserve(src->count);
+		switch (src->t)
+		{
+		case tinyply::Type::FLOAT32:
+		{
+			const Vector3 *data = reinterpret_cast<const Vector3 *>(src->buffer.get());
+			for (size_t i = 0; i < src->count; ++i)
+			{
+				dst.push_back(data[i]);
+			}
+		} break;
+
+		case tinyply::Type::FLOAT64:
+		{
+			struct Vector3d { double x, y, z; };
+			const Vector3d *data = reinterpret_cast<const Vector3d *>(src->buffer.get());
+			for (size_t i = 0; i < src->count; ++i)
+			{
+				dst.push_back(Vector3(float(data[i].x), float(data[i].y), float(data[i].z)));
+			}
+		} break;
+		}
+	}
+
+	void copyPlyData(std::shared_ptr<tinyply::PlyData> src, std::vector<Vector2> &dst)
+	{
+		dst.clear();
+		dst.reserve(src->count);
+		switch (src->t)
+		{
+		case tinyply::Type::FLOAT32:
+		{
+			const Vector2 *data = reinterpret_cast<const Vector2 *>(src->buffer.get());
+			for (size_t i = 0; i < src->count; ++i)
+			{
+				dst.push_back(data[i]);
+			}
+		} break;
+
+		case tinyply::Type::FLOAT64:
+		{
+			struct Vector2d { double x, y; };
+			const Vector2d *data = reinterpret_cast<const Vector2d *>(src->buffer.get());
+			for (size_t i = 0; i < src->count; ++i)
+			{
+				dst.push_back(Vector2(float(data[i].x), float(data[i].y)));
+			}
+		} break;
+		}
+	}
+}
+
+Mesh* Mesh::loadPly(const char *path)
+{
+	enum class NormalsFrom { Nowhere, Face, Vertex };
+	try
+	{
+		std::ifstream ss(path, std::ios::binary);
+		tinyply::PlyFile file;
+		file.parse_header(ss);
+
+		std::shared_ptr<tinyply::PlyData> verts;
+		std::shared_ptr<tinyply::PlyData> norms;
+		std::shared_ptr<tinyply::PlyData> uvs;
+		std::shared_ptr<tinyply::PlyData> faces;
+
+		verts = file.request_properties_from_element("vertex", { "x", "y", "z" });
+		faces = file.request_properties_from_element("face", { "vertex_indices" });
+
+		try { uvs = file.request_properties_from_element("vertex", { "s", "t" }); }
+		catch (const std::exception &e) {}
+
+		NormalsFrom normalsFrom = NormalsFrom::Nowhere;
+		if (!norms)
+		{
+			try
+			{
+				norms = file.request_properties_from_element("vertex", { "nx", "ny", "nz" });
+				normalsFrom = NormalsFrom::Vertex;
+			}
+			catch (const std::exception &e) {}
+		}
+		if (!norms)
+		{
+			try
+			{
+				norms = file.request_properties_from_element("face", { "nx", "ny", "nz" });
+				normalsFrom = NormalsFrom::Face;
+			}
+			catch (const std::exception &e) {}
+		}
+
+		file.read(ss);
+
+		Mesh *mesh = new Mesh();
+
+		copyPlyData(verts, mesh->positions);
+		copyPlyData(uvs, mesh->texcoords);
+		copyPlyData(norms, mesh->normals);
+
+		const size_t tricount = faces->count;
+		mesh->triangles.reserve(tricount);
+
+		uint32_t normal_idx = UINT32_MAX;
+
+		auto &get_face_vertex_idx = [&](const size_t i)
+		{
+			switch (faces->t)
+			{
+			case tinyply::Type::UINT32: return reinterpret_cast<const uint32_t*>(faces->buffer.get())[i];
+			case tinyply::Type::UINT16: return uint32_t(reinterpret_cast<const uint16_t*>(faces->buffer.get())[i]);
+			}
+			return UINT32_MAX;
+		};
+
+		for (size_t i = 0; i < tricount; ++i)
+		{
+			const uint32_t vstart = mesh->vertices.size();
+
+			if (normalsFrom == NormalsFrom::Face) { normal_idx = i * 3; }
+
+			for (size_t j = 0; j < 3; ++j)
+			{
+				const uint32_t vidx = get_face_vertex_idx(i * 3 + j);
+
+				if (normalsFrom == NormalsFrom::Vertex) { normal_idx = vidx; }
+
+				mesh->vertices.emplace_back(Mesh::Vertex{ vidx, (!uvs) ? UINT32_MAX : vidx, normal_idx });
+			}
+			mesh->triangles.emplace_back(Mesh::Triangle{ vstart, vstart + 1, vstart + 2 });
+		}
+
+		return mesh;
+	}
+	catch (const std::exception &e)
+	{
+		return nullptr;
+	}
+}
+
+namespace
+{
+	bool endsWith(const std::string &str, const std::string &ending)
+	{
+		if (ending.size() > str.size()) return false;
+		return std::equal(ending.rbegin(), ending.rend(), str.rbegin());
+	}
+}
+
+Mesh * Mesh::loadFile(const char * path)
+{
+	if (endsWith(path, ".obj")) return loadWavefrontObj(path);
+	if (endsWith(path, ".ply")) return loadPly(path);
+	return nullptr;
 }
 
 void Mesh::computeFaceNormals()

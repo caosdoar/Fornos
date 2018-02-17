@@ -9,6 +9,7 @@
 #include "bvh.h"
 #include "compute.h"
 #include "mesh.h"
+#include "timing.h"
 #include "meshmapping.h"
 
 #include "solver_ao.h"
@@ -31,7 +32,7 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 {
 	// TODO: Several of this steps can take long and they will freeze the UI
 
-	std::shared_ptr<Mesh> lowPolyMesh(Mesh::loadWavefrontObj(params.shared.loPolyMeshPath.c_str()));
+	std::shared_ptr<Mesh> lowPolyMesh(Mesh::loadFile(params.shared.loPolyMeshPath.c_str()));
 	if (lowPolyMesh)
 	{
 		switch (params.shared.loPolyMeshNormal)
@@ -50,7 +51,7 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 	std::shared_ptr<Mesh> hiPolyMesh = 
 		params.shared.hiPolyMeshPath.empty() ?
 		lowPolyMesh : 
-		std::shared_ptr<Mesh>(Mesh::loadWavefrontObj(params.shared.hiPolyMeshPath.c_str()));
+		std::shared_ptr<Mesh>(Mesh::loadFile(params.shared.hiPolyMeshPath.c_str()));
 	if (hiPolyMesh && hiPolyMesh != lowPolyMesh)
 	{
 		switch (params.shared.hiPolyMeshNormal)
@@ -71,12 +72,12 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 	}
 
 	std::shared_ptr<MapUV> map(MapUV::fromMesh(lowPolyMesh.get(), params.shared.texWidth, params.shared.texHeight));
-	std::shared_ptr<CompressedMapUV> compressedMap(new CompressedMapUV(map.get()));
 	if (!map)
 	{
 		errors = "Low poly mesh is missing texture coordinates or normals information";
 		return false;
 	}
+	std::shared_ptr<CompressedMapUV> compressedMap(new CompressedMapUV(map.get()));
 
 	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), params.shared.bvhTrisPerNode, 8192));
 
@@ -145,6 +146,20 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 	return true;
 }
 
+void FornosRunner::run()
+{
+	if (!_tasks.empty())
+	{
+		auto task = _tasks.back();
+		if (task->runStep())
+		{
+			task->finish(); // Exports map or any other after-compute work
+			delete task;
+			_tasks.pop_back();
+		}
+	}
+}
+
 static void APIENTRY openglCallbackFunction(
 	GLenum source,
 	GLenum type,
@@ -197,14 +212,7 @@ int main(int argc, char *argv[])
 		if (runner.pending())
 		{
 			glfwSwapInterval(0);
-
-			auto task = runner.currentTask();
-			if (task->runStep())
-			{
-				task->finish(); // Exports map or any other after-compute work
-				delete task;
-				runner.moveToNextTask();
-			}
+			runner.run();
 		}
 		else
 		{
