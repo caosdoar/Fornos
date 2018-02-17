@@ -1,1 +1,1 @@
-python shaders2cpp.py -f ..\fornos\shaders -o ..\fornos\computeshaders_content.h
+python shaders2cpp.py -f ..\Shaders -o ..\Src\computeshaders_content.h

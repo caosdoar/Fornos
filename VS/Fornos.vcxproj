@@ -69,7 +69,14 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)Builds\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)Builds\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -132,7 +139,8 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /c /y /e "$(ProjectDir)shaders" "$(TargetDir)"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -144,41 +152,20 @@
     <ClCompile Include="..\3rdParty\imgui\imgui_impl_glfw_gl3.cpp" />
     <ClCompile Include="..\3rdParty\tinyexr\tinyexr.cc" />
     <ClCompile Include="..\3rdParty\tinyply\tinyply.cpp" />
-    <ClCompile Include="bvh.cpp" />
-    <ClCompile Include="compute.cpp" />
-    <ClCompile Include="computeshaders.cpp" />
-    <ClCompile Include="fornos.cpp" />
-    <ClCompile Include="fornosui.cpp" />
-    <ClCompile Include="image.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="meshmapping.cpp" />
-    <ClCompile Include="solver_ao.cpp" />
-    <ClCompile Include="solver_bentnormals.cpp" />
-    <ClCompile Include="solver_height.cpp" />
-    <ClCompile Include="solver_normals.cpp" />
-    <ClCompile Include="solver_position.cpp" />
-    <ClCompile Include="solver_thickness.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="bvh.h" />
-    <ClInclude Include="compute.h" />
-    <ClInclude Include="computeshaders.h" />
-    <ClInclude Include="computeshaders_content.h" />
-    <ClInclude Include="fornos.h" />
-    <ClInclude Include="fornosui.h" />
-    <ClInclude Include="image.h" />
-    <ClInclude Include="math.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="meshmapping.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="solver_ao.h" />
-    <ClInclude Include="solver_bentnormals.h" />
-    <ClInclude Include="solver_height.h" />
-    <ClInclude Include="solver_normals.h" />
-    <ClInclude Include="solver_position.h" />
-    <ClInclude Include="solver_thickness.h" />
-    <ClInclude Include="stb_image_write.h" />
-    <ClInclude Include="timing.h" />
+    <ClCompile Include="..\Src\bvh.cpp" />
+    <ClCompile Include="..\Src\compute.cpp" />
+    <ClCompile Include="..\Src\computeshaders.cpp" />
+    <ClCompile Include="..\Src\fornos.cpp" />
+    <ClCompile Include="..\Src\fornosui.cpp" />
+    <ClCompile Include="..\Src\image.cpp" />
+    <ClCompile Include="..\Src\mesh.cpp" />
+    <ClCompile Include="..\Src\meshmapping.cpp" />
+    <ClCompile Include="..\Src\solver_ao.cpp" />
+    <ClCompile Include="..\Src\solver_bentnormals.cpp" />
+    <ClCompile Include="..\Src\solver_height.cpp" />
+    <ClCompile Include="..\Src\solver_normals.cpp" />
+    <ClCompile Include="..\Src\solver_position.cpp" />
+    <ClCompile Include="..\Src\solver_thickness.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="shaders\thickness.comp">
@@ -192,6 +179,27 @@
   <ItemGroup>
     <Image Include="fornos.ico" />
     <Image Include="icon2.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Src\bvh.h" />
+    <ClInclude Include="..\Src\compute.h" />
+    <ClInclude Include="..\Src\computeshaders.h" />
+    <ClInclude Include="..\Src\computeshaders_content.h" />
+    <ClInclude Include="..\Src\fornos.h" />
+    <ClInclude Include="..\Src\fornosui.h" />
+    <ClInclude Include="..\Src\image.h" />
+    <ClInclude Include="..\Src\math.h" />
+    <ClInclude Include="..\Src\mesh.h" />
+    <ClInclude Include="..\Src\meshmapping.h" />
+    <ClInclude Include="..\Src\resource.h" />
+    <ClInclude Include="..\Src\solver_ao.h" />
+    <ClInclude Include="..\Src\solver_bentnormals.h" />
+    <ClInclude Include="..\Src\solver_height.h" />
+    <ClInclude Include="..\Src\solver_normals.h" />
+    <ClInclude Include="..\Src\solver_position.h" />
+    <ClInclude Include="..\Src\solver_thickness.h" />
+    <ClInclude Include="..\Src\stb_image_write.h" />
+    <ClInclude Include="..\Src\timing.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
