@@ -176,7 +176,17 @@ static void APIENTRY openglCallbackFunction(
 	}
 }
 
+#if defined(_WIN32) && !defined(_CONSOLE)
+int CALLBACK WinMain
+(
+	_In_ HINSTANCE hInstance,
+	_In_ HINSTANCE hPrevInstance,
+	_In_ LPSTR     lpCmdLine,
+	_In_ int       nCmdShow
+)
+#else
 int main(int argc, char *argv[])
+#endif
 {
 	// Setup window
 	glfwSetErrorCallback(error_callback);

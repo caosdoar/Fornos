@@ -92,6 +92,7 @@
     <Link>
       <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Code\Fornos\3rdParty\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /c /y /e "$(ProjectDir)shaders" "$(TargetDir)"</Command>
@@ -128,6 +129,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Code\Fornos\3rdParty\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /c /y /e "$(ProjectDir)shaders" "$(TargetDir)"</Command>
@@ -168,6 +170,7 @@
     <ClInclude Include="math.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="meshmapping.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="solver_ao.h" />
     <ClInclude Include="solver_bentnormals.h" />
     <ClInclude Include="solver_height.h" />
@@ -182,6 +185,13 @@
     </Content>
     <Content Include="shaders\normals.comp">
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="fornos.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="fornos.ico" />
+    <Image Include="icon2.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
