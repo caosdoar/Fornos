@@ -4,12 +4,6 @@
 
 layout (local_size_x = 64) in;
 
-#define BUFFER_RAYS 4
-#define BUFFER_POSITIONS 5
-#define BUFFER_BVH 6
-#define BUFFER_RES_COORDS 7
-#define BUFFER_RES_TIDX 8
-
 #define RAYCAST_FORWARD 1
 #define RAYCAST_BACKWARD 1
 
@@ -35,11 +29,11 @@ struct BVH
 layout(location = 1) uniform uint workOffset;
 layout(location = 2) uniform uint workCount;
 layout(location = 3) uniform uint bvhCount;
-layout(std430, binding = BUFFER_RAYS) readonly buffer pixBuffer { Pix pixels[]; };
-layout(std430, binding = BUFFER_POSITIONS) readonly buffer meshPBuffer { vec3 positions[]; };
-layout(std430, binding = BUFFER_BVH) readonly buffer bvhBuffer { BVH bvhs[]; };
-layout(std430, binding = BUFFER_RES_COORDS) writeonly buffer rCoordBuffer { vec4 r_coords[]; };
-layout(std430, binding = BUFFER_RES_TIDX) writeonly buffer rTidxBuffer { uint r_tidx[]; };
+layout(std430, binding = 4) readonly buffer pixBuffer { Pix pixels[]; };
+layout(std430, binding = 5) readonly buffer meshPBuffer { vec3 positions[]; };
+layout(std430, binding = 6) readonly buffer bvhBuffer { BVH bvhs[]; };
+layout(std430, binding = 7) writeonly buffer rCoordBuffer { vec4 r_coords[]; };
+layout(std430, binding = 8) writeonly buffer rTidxBuffer { uint r_tidx[]; };
 
 float RayAABB(vec3 o, vec3 d, vec3 mins, vec3 maxs)
 {

@@ -1,6 +1,7 @@
 import argparse
 import os
 import os.path
+import re
 
 def get_shaders(path):
 	files = []
@@ -17,16 +18,24 @@ def read_file_as_single_line(path):
 			line = line.strip()
 			if len(line) > 0:
 				content += line
-				content += '\\n'
-	return content
+				content += '\n'
+	return comment_remover(content).replace('\n', '\\n')
+
+def comment_remover(text):
+	def replacer(match):
+		s = match.group(0)
+		if s.startswith('/'):
+			return ' '
+		else:
+			return s
+	pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+	return re.sub(pattern, replacer, text)
 
 def var_name_from_path(path):
 	varname = os.path.basename(path)
 	varname = varname.replace('.', '_')
 	varname = varname.replace('-', '_')
 	return varname
-
-
 
 def main():
 	parser = argparse.ArgumentParser()
