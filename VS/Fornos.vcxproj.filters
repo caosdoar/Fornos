@@ -126,9 +126,6 @@
     <ClInclude Include="..\Src\meshmapping.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Src\resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Src\solver_ao.h">
       <Filter>Header Files</Filter>
     </ClInclude>

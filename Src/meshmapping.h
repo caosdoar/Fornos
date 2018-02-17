@@ -28,6 +28,15 @@ struct PixT_GPUData
 	float _pad1;
 };
 
+struct BVHGPUData
+{
+	Vector3 aabbMin;
+	Vector3 aabbMax;
+	uint32_t start, end;
+	uint32_t jump;
+	BVHGPUData() : aabbMin(), aabbMax(), start(0), end(0), jump(0) {}
+};
+
 class MeshMapping
 {
 public:

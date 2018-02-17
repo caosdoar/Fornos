@@ -191,7 +191,6 @@
     <ClInclude Include="..\Src\math.h" />
     <ClInclude Include="..\Src\mesh.h" />
     <ClInclude Include="..\Src\meshmapping.h" />
-    <ClInclude Include="..\Src\resource.h" />
     <ClInclude Include="..\Src\solver_ao.h" />
     <ClInclude Include="..\Src\solver_bentnormals.h" />
     <ClInclude Include="..\Src\solver_height.h" />

@@ -1,3 +1,25 @@
+/*
+Copyright 2018 Oscar Sebio Cajaraville
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #pragma once
 
 #include <glad/glad.h>
@@ -10,69 +32,9 @@
 
 class Mesh;
 
-inline GLuint CreateComputeProgram(const char *path)
-{
-	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+GLuint CreateComputeProgram(const char *path);
 
-	std::ifstream ifs(path);
-	std::string src((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-
-	const char *src_str = src.c_str();
-	glShaderSource(shader, 1, &src_str, nullptr);
-	glCompileShader(shader);
-
-#if 1
-	{
-		GLint compiled;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-		if (compiled != GL_TRUE)
-		{
-			const size_t buffSize = 2048;
-			char *buff = new char[buffSize];
-			GLsizei length;
-			glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
-			std::cerr << buff << std::endl;
-			//assert(false);
-		}
-	}
-#endif
-
-	GLuint program = glCreateProgram();
-	glAttachShader(program, shader);
-	glLinkProgram(program);
-
-	return program;
-}
-
-inline GLuint CreateComputeProgramFromMemory(const char *src)
-{
-	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
-
-	glShaderSource(shader, 1, &src, nullptr);
-	glCompileShader(shader);
-
-#if 1
-	{
-		GLint compiled;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-		if (compiled != GL_TRUE)
-		{
-			const size_t buffSize = 2048;
-			char *buff = new char[buffSize];
-			GLsizei length;
-			glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
-			std::cerr << buff << std::endl;
-			//assert(false);
-		}
-	}
-#endif
-
-	GLuint program = glCreateProgram();
-	glAttachShader(program, shader);
-	glLinkProgram(program);
-
-	return program;
-}
+GLuint CreateComputeProgramFromMemory(const char *src);
 
 template <typename T>
 class ComputeBuffer
@@ -125,36 +87,6 @@ private:
 	GLuint _bo;
 	size_t _size;
 };
-
-/*template <typename T> inline GLuint CreateComputeBuffer(const T &data, GLenum usage)
-{
-	GLuint bo;
-	glGenBuffers(1, &bo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T), &data, usage);
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	return bo;
-}
-
-template <typename T> GLuint CreateComputeBuffer(const T *data, size_t count, GLenum usage)
-{
-	GLuint bo;
-	glGenBuffers(1, &bo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T) * count, data, usage);
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	return bo;
-}
-
-inline GLuint CreateComputeBuffer(size_t size, GLenum usage)
-{
-	GLuint bo;
-	glGenBuffers(1, &bo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, usage);
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	return bo;
-}*/
 
 class ComputeTexture_Float
 {
@@ -280,6 +212,7 @@ private:
 	size_t _h;
 };
 
+/// Stores per-pixel data for the low-poly mesh
 struct MapUV
 {
 	std::vector<Vector3> positions;
@@ -298,10 +231,15 @@ struct MapUV
 	{
 	}
 
+	/// Builds a map from a mesh
+	/// @param mesh Mesh
+	/// @param width Map width
+	/// @param height Map height
 	static MapUV* fromMesh(const Mesh *mesh, uint32_t width, uint32_t height);
 };
 
-// MapUV without any pixels with no data
+/// MapUV without any pixels with no data
+/// This is for a more efficient processing in the GPU
 struct CompressedMapUV
 {
 	std::vector<Vector3> positions;
@@ -313,16 +251,6 @@ struct CompressedMapUV
 	const uint32_t width;
 	const uint32_t height;
 
+	/// Creates a compressed map from a raw map
 	CompressedMapUV(const MapUV *map);
-};
-
-// Shared compute shader structures
-
-struct BVHGPUData
-{
-	Vector3 aabbMin;
-	Vector3 aabbMax;
-	uint32_t start, end;
-	uint32_t jump;
-	BVHGPUData() : aabbMin(), aabbMax(), start(0), end(0), jump(0) {}
 };

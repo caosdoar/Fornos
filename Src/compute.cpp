@@ -1,6 +1,66 @@
+/*
+Copyright 2018 Oscar Sebio Cajaraville
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #include "compute.h"
 #include "math.h"
 #include "mesh.h"
+
+GLuint CreateComputeProgram(const char *path)
+{
+	std::ifstream ifs(path);
+	std::string src((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+	const char *src_str = src.c_str();
+	return CreateComputeProgramFromMemory(src_str);
+}
+
+inline GLuint CreateComputeProgramFromMemory(const char *src)
+{
+	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+
+	glShaderSource(shader, 1, &src, nullptr);
+	glCompileShader(shader);
+
+#if 1
+	{
+		GLint compiled;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if (compiled != GL_TRUE)
+		{
+			const size_t buffSize = 2048;
+			char *buff = new char[buffSize];
+			GLsizei length;
+			glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
+			std::cerr << buff << std::endl;
+			//assert(false);
+		}
+	}
+#endif
+
+	GLuint program = glCreateProgram();
+	glAttachShader(program, shader);
+	glLinkProgram(program);
+
+	return program;
+}
 
 MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 {
