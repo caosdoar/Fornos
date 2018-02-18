@@ -27,7 +27,7 @@ A fast and simple tool to bake your high-poly mesh details to textures.
 
 The current project is at an usable state but as a very early preview. Crashes can be expected, memory consumption can be high for large textures or big meshes, and there is barely any error reporting to the user.
 
-## Akownledgements
+## Ackownledgements
 
 This project is possible thanks to the following libraries:
 
