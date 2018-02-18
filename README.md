@@ -89,6 +89,8 @@ If 8-bit format for the output is used the values will be stored as (value * 0.5
 
 Computes the ratio of occluders in a number of samples for a cosine weighted hemisphere. A.k.a. your usual ambient occlusion map.
 
+Supports 8-bit (PNG and TGA) and EXR file formats as outputs.
+
 **Sample count**: Number of samples used for each pixel. The greater the number, the better and the slower.
 
 **Min distance**: Minimum distance to consider an occluder. In mesh units.
@@ -105,6 +107,8 @@ For correct visualization engines usually requires matching parameters between a
 
 More information about bent normals in the [Unreal Engine documentation](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/BentNormalMaps/).
 
+If 8-bit format for the output is used the values will be stored as (value * 0.5 + 0.5). This is the format most engines will expect. If an EXR file is used the values will not be transformed. 
+
 **Sample count**: Number of samples used for each pixel.
 
 **Min distance**: Minimum distance to consider an occluder. In mesh units.
@@ -116,6 +120,8 @@ More information about bent normals in the [Unreal Engine documentation](https:/
 Generates a map of how thick is in average the mesh for a point in the surface.
 
 This map is useful for translucency and sub-surface scattering effects.
+
+Supports 8-bit (PNG and TGA) and EXR file formats as outputs.
 
 **Sample count**: Number of samples used for each pixel.
 
