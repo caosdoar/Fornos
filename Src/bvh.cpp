@@ -201,31 +201,6 @@ void binaryDivisionBVH(const Mesh *mesh, const size_t maxTriangleCount, const si
 		parent.children[1].subtreeTriangleCount;
 }
 
-struct BVHStats
-{
-	size_t maxTriangles = 0;
-};
-
-void bvhStatistics(const BVH &root, BVHStats &stats)
-{
-	if (root.children.size() > 0)
-	{
-		bvhStatistics(root.children[0], stats);
-		bvhStatistics(root.children[1], stats);
-	}
-
-	if (stats.maxTriangles < root.triangles.size()) stats.maxTriangles = root.triangles.size();
-}
-
-#include <iostream>
-
-void bvhStatistics(const BVH &root)
-{
-	BVHStats stats;
-	bvhStatistics(root, stats);
-	std::cout << stats.maxTriangles << std::endl;
-}
-
 BVH* BVH::createBinary(const Mesh *mesh, const size_t maxTriangleCount, const size_t maxTreeDepth)
 {
 	Timing timing;
@@ -252,8 +227,6 @@ BVH* BVH::createBinary(const Mesh *mesh, const size_t maxTriangleCount, const si
 	}
 
 	binaryDivisionBVH(mesh, maxTriangleCount, maxTreeDepth, *bvh, 0);
-
-	bvhStatistics(*bvh);
 
 	timing.end();
 	logDebug("BVH", "BHV Creation took " + std::to_string(timing.elapsedSeconds()) + " seconds.");
