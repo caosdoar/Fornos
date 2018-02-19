@@ -24,6 +24,7 @@ SOFTWARE.
 #include "compute.h"
 #include "computeshaders.h"
 #include "image.h"
+#include "logging.h"
 #include "meshmapping.h"
 #include <cassert>
 
@@ -133,7 +134,9 @@ bool BentNormalsSolver::runStep()
 	if (_workOffset >= totalWork)
 	{
 		_timing.end();
-		std::cout << "AO map took " << _timing.elapsedSeconds() << " seconds for " << _uvMap->width << "x" << _uvMap->height << std::endl;
+		logDebug("BNorm",
+			"Bent Normals map took " + std::to_string(_timing.elapsedSeconds()) +
+			" seconds for " + std::to_string(_uvMap->width) + "x" + std::to_string(_uvMap->height));
 	}
 
 	return _workOffset >= totalWork;

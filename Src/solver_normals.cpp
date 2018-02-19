@@ -25,6 +25,7 @@ SOFTWARE.
 #include "compute.h"
 #include "computeshaders.h"
 #include "image.h"
+#include "logging.h"
 #include "math.h"
 #include "mesh.h"
 #include "meshmapping.h"
@@ -78,7 +79,9 @@ bool NormalsSolver::runStep()
 	if (_workOffset >= _workCount)
 	{
 		_timing.end();
-		std::cout << "Normal map took " << _timing.elapsedSeconds() << " seconds for " << _uvMap->width << "x" << _uvMap->height << std::endl;
+		logDebug("Norms",
+			"Normal map took " + std::to_string(_timing.elapsedSeconds()) +
+			" seconds for " + std::to_string(_uvMap->width) + "x" + std::to_string(_uvMap->height));
 	}
 
 	return _workOffset >= _workCount;

@@ -25,6 +25,7 @@ SOFTWARE.
 #include "compute.h"
 #include "computeshaders.h"
 #include "image.h"
+#include "logging.h"
 #include "math.h"
 #include "mesh.h"
 #include "meshmapping.h"
@@ -64,7 +65,9 @@ bool HeightSolver::runStep()
 	if (_workOffset >= _workCount)
 	{
 		_timing.end();
-		std::cout << "Height map took " << _timing.elapsedSeconds() << " seconds for " << _uvMap->width << "x" << _uvMap->height << std::endl;
+		logDebug("Height",
+			"Height map took " + std::to_string(_timing.elapsedSeconds()) +
+			" seconds for " + std::to_string(_uvMap->width) + "x" + std::to_string(_uvMap->height));
 	}
 
 	return _workOffset >= _workCount;
@@ -104,7 +107,7 @@ void HeightTask::finish()
 	Vector2 minmax;
 	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, &minmax);
 	delete[] results;
-	std::cout << "Height map range: " << minmax.x << " to " << minmax.y << std::endl;
+	logDebug("Height", "Height map range: " + std::to_string(minmax.x) + " to " + std::to_string(minmax.y));
 }
 
 float HeightTask::progress() const

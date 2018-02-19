@@ -25,6 +25,7 @@ SOFTWARE.
 #include "compute.h"
 #include "computeshaders.h"
 #include "image.h"
+#include "logging.h"
 #include "math.h"
 #include "mesh.h"
 #include "meshmapping.h"
@@ -66,7 +67,9 @@ bool PositionSolver::runStep()
 	if (_workOffset >= _workCount)
 	{
 		_timing.end();
-		std::cout << "Position map took " << _timing.elapsedSeconds() << " seconds for " << _uvMap->width << "x" << _uvMap->height << std::endl;
+		logDebug("Position",
+			"Position map took " + std::to_string(_timing.elapsedSeconds()) +
+			" seconds for " + std::to_string(_uvMap->width) + "x" + std::to_string(_uvMap->height));
 	}
 
 	return _workOffset >= _workCount;

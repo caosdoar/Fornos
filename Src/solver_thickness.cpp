@@ -23,6 +23,7 @@ SOFTWARE.
 #include "solver_thickness.h"
 #include "compute.h"
 #include "computeshaders.h"
+#include "logging.h"
 #include "meshmapping.h"
 #include "image.h"
 #include <cassert>
@@ -121,7 +122,9 @@ bool ThicknessSolver::runStep()
 	if (_workOffset >= totalWork)
 	{
 		_timing.end();
-		std::cout << "Thickness map took " << _timing.elapsedSeconds() << " seconds for " << _uvMap->width << "x" << _uvMap->height << std::endl;
+		logDebug("Thickness",
+			"Thickness map took " + std::to_string(_timing.elapsedSeconds()) +
+			" seconds for " + std::to_string(_uvMap->width) + "x" + std::to_string(_uvMap->height));
 	}
 
 	return _workOffset >= totalWork;
@@ -154,8 +157,10 @@ void ThicknessTask::finish()
 {
 	assert(_solver);
 	float *results = _solver->getResults();
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true);
+	Vector2 minmax;
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, &minmax);
 	delete[] results;
+	logDebug("Thickness", "Thickness map range: " + std::to_string(minmax.x) + " to " + std::to_string(minmax.y));
 }
 
 float ThicknessTask::progress() const

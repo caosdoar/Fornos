@@ -24,9 +24,7 @@ SOFTWARE.
 
 #include <glad/glad.h>
 #include <string>
-#include <fstream>
 #include <cassert>
-#include <iostream>
 #include <vector>
 #include "math.h"
 

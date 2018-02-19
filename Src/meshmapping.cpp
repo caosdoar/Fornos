@@ -23,6 +23,7 @@ SOFTWARE.
 #include "meshmapping.h"
 #include "bvh.h"
 #include "computeshaders.h"
+#include "logging.h"
 #include "mesh.h"
 #include <cassert>
 
@@ -204,7 +205,7 @@ bool MeshMapping::runStep()
 	if (_workOffset == _workCount)
 	{
 		_timing.end();
-		std::cout << "MeshMapping took " << _timing.elapsedSeconds() << " seconds." << std::endl;
+		logDebug("MeshMap", "Mesh mapping took " + std::to_string(_timing.elapsedSeconds()) + " seconds.");
 	}
 
 	return _workOffset >= _workCount;

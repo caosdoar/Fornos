@@ -21,8 +21,10 @@ SOFTWARE.
 */
 
 #include "compute.h"
+#include "logging.h"
 #include "math.h"
 #include "mesh.h"
+#include <fstream>
 
 GLuint CreateComputeProgram(const char *path)
 {
@@ -49,7 +51,7 @@ inline GLuint CreateComputeProgramFromMemory(const char *src)
 			char *buff = new char[buffSize];
 			GLsizei length;
 			glGetShaderInfoLog(shader, (GLsizei)buffSize, &length, buff);
-			std::cerr << buff << std::endl;
+			logError("Compute", buff);
 			//assert(false);
 		}
 	}
