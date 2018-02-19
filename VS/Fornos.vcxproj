@@ -155,6 +155,7 @@
     <ClCompile Include="..\Src\fornos.cpp" />
     <ClCompile Include="..\Src\fornosui.cpp" />
     <ClCompile Include="..\Src\image.cpp" />
+    <ClCompile Include="..\Src\logging.cpp" />
     <ClCompile Include="..\Src\mesh.cpp" />
     <ClCompile Include="..\Src\meshmapping.cpp" />
     <ClCompile Include="..\Src\solver_ao.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="..\Src\fornos.h" />
     <ClInclude Include="..\Src\fornosui.h" />
     <ClInclude Include="..\Src\image.h" />
+    <ClInclude Include="..\Src\logging.h" />
     <ClInclude Include="..\Src\math.h" />
     <ClInclude Include="..\Src\mesh.h" />
     <ClInclude Include="..\Src\meshmapping.h" />

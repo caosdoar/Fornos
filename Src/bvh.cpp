@@ -21,10 +21,25 @@ SOFTWARE.
 */
 
 #include "bvh.h"
+#include "logging.h"
 #include "mesh.h"
+#include "timing.h"
 #include <cassert>
 
-inline size_t bestSplitFromBuckets(const uint32_t buckets[16], const uint32_t tricount)
+struct Split
+{
+	enum class Axis { X, Y, Z };
+	Axis axis;
+	float split;
+};
+
+struct BucketSplit
+{
+	size_t splitIdx;
+	float quality;
+};
+
+inline BucketSplit selectSplitFromBuckets(const uint32_t buckets[16], const uint32_t tricount)
 {
 	int l = 0;
 	int r = (int)tricount;
@@ -43,15 +58,16 @@ inline size_t bestSplitFromBuckets(const uint32_t buckets[16], const uint32_t tr
 		diff = d;
 		best = i;
 	}
-	return best;
+	const float quality = 1.0f - float(diff) / float(tricount);
+	return BucketSplit{ best, quality };
 }
 
-template <typename Axis>
-float findSplit(const Mesh *mesh, const BVH &parent)
+Split findBestSplit(const Mesh *mesh, const BVH &parent)
 {
-	const float minX = Axis::get(parent.aabb.center) - Axis::get(parent.aabb.size);
-	const float maxX = Axis::get(parent.aabb.center) + Axis::get(parent.aabb.size);
-	uint32_t buckets[16] = { 0 };
+	Split ret;
+
+	Vector3 mins = Vector3(FLT_MAX);
+	Vector3 maxs = Vector3(-FLT_MAX);
 	for (uint32_t tidx : parent.triangles)
 	{
 		const Mesh::Triangle &tri = mesh->triangles[tidx];
@@ -59,18 +75,53 @@ float findSplit(const Mesh *mesh, const BVH &parent)
 		const Vector3 p1 = mesh->positions[mesh->vertices[tri.vertexIndex1].positionIndex];
 		const Vector3 p2 = mesh->positions[mesh->vertices[tri.vertexIndex2].positionIndex];
 		const Vector3 centroid = (p0 + p1 + p2) / 3.0f;
-		const size_t i = size_t((Axis::get(centroid) - minX) / (maxX - minX) * 15.99f);
-		assert(i < 16);
-		++buckets[i];
+		mins = min(mins, centroid);
+		maxs = max(maxs, centroid);
 	}
 
-	size_t best = bestSplitFromBuckets(buckets, uint32_t(parent.triangles.size()));
-	return minX + (maxX - minX) / 16.0f * float(best + 1);
-}
+	uint32_t bucketsX[16] = { 0 };
+	uint32_t bucketsY[16] = { 0 };
+	uint32_t bucketsZ[16] = { 0 };
+	for (uint32_t tidx : parent.triangles)
+	{
+		const Mesh::Triangle &tri = mesh->triangles[tidx];
+		const Vector3 p0 = mesh->positions[mesh->vertices[tri.vertexIndex0].positionIndex];
+		const Vector3 p1 = mesh->positions[mesh->vertices[tri.vertexIndex1].positionIndex];
+		const Vector3 p2 = mesh->positions[mesh->vertices[tri.vertexIndex2].positionIndex];
+		const Vector3 centroid = (p0 + p1 + p2) / 3.0f;
+		const Vector3 ijk = (centroid - mins) / (maxs - mins) * 15.99f;
+		const size_t i = isnan(ijk.x) ? 0 : size_t(ijk.x);
+		const size_t j = isnan(ijk.y) ? 0 : size_t(ijk.y);
+		const size_t k = isnan(ijk.z) ? 0 : size_t(ijk.z);
+		assert(i < 16 && j < 16 && k < 16);
+		++bucketsX[i];
+		++bucketsY[j];
+		++bucketsZ[k];
+	}
 
-struct AxisX { static float get(const Vector3 &v) { return v.x; } };
-struct AxisY { static float get(const Vector3 &v) { return v.y; } };
-struct AxisZ { static float get(const Vector3 &v) { return v.z; } };
+	const uint32_t tricount = uint32_t(parent.triangles.size());
+	const BucketSplit splitX = selectSplitFromBuckets(bucketsX, tricount);
+	const BucketSplit splitY = selectSplitFromBuckets(bucketsY, tricount);
+	const BucketSplit splitZ = selectSplitFromBuckets(bucketsZ, tricount);
+
+	if (splitX.quality >= splitY.quality && splitX.quality >= splitZ.quality)
+	{
+		ret.axis = Split::Axis::X;
+		ret.split = mins.x + (maxs.x - mins.x) / 16.0f * float(splitX.splitIdx + 1);
+	}
+	else if (splitY.quality >= splitX.quality && splitY.quality >= splitZ.quality)
+	{
+		ret.axis = Split::Axis::Y;
+		ret.split = mins.y + (maxs.y - mins.y) / 16.0f * float(splitY.splitIdx + 1);
+	}
+	else
+	{
+		ret.axis = Split::Axis::Z;
+		ret.split = mins.z + (maxs.z - mins.z) / 16.0f * float(splitZ.splitIdx + 1);
+	}
+
+	return ret;
+}
 
 void binaryDivisionBVH(const Mesh *mesh, const size_t maxTriangleCount, const size_t maxTreeDepth, BVH &parent, const size_t currentDepth)
 {
@@ -86,82 +137,32 @@ void binaryDivisionBVH(const Mesh *mesh, const size_t maxTriangleCount, const si
 	Vector3 aabbMinL(FLT_MAX); Vector3 aabbMaxL(-FLT_MAX);
 	Vector3 aabbMinR(FLT_MAX); Vector3 aabbMaxR(-FLT_MAX);
 
-	const Vector3 parentSize = parent.aabb.size;
-	if (parentSize.x >= parentSize.y && parentSize.x >= parentSize.z)
-	{
-		// Divide X
-		//const float xTest = findSplitX(mesh, parent);
-		const float xTest = findSplit<AxisX>(mesh, parent);
-		for (uint32_t tidx : parent.triangles)
-		{
-			const Mesh::Triangle &tri = mesh->triangles[tidx];
-			const Vector3 p0 = mesh->positions[mesh->vertices[tri.vertexIndex0].positionIndex];
-			const Vector3 p1 = mesh->positions[mesh->vertices[tri.vertexIndex1].positionIndex];
-			const Vector3 p2 = mesh->positions[mesh->vertices[tri.vertexIndex2].positionIndex];
-			const Vector3 c = (p0 + p1 + p2) * (1.0f / 3.0f);
-			if (c.x <= xTest)
-			{
-				parent.children[0].triangles.push_back(tidx);
-				aabbMinL = min(aabbMinL, min(p0, min(p1, p2)));
-				aabbMaxL = max(aabbMaxL, max(p0, max(p1, p2)));
-			}
-			else
-			{
-				parent.children[1].triangles.push_back(tidx);
-				aabbMinR = min(aabbMinR, min(p0, min(p1, p2)));
-				aabbMaxR = max(aabbMaxR, max(p0, max(p1, p2)));
-			}
-		}
-	}
-	else if (parentSize.y >= parentSize.z)
-	{
-		// Divide Y
-		const float yTest = findSplit<AxisY>(mesh, parent);
-		for (uint32_t tidx : parent.triangles)
-		{
-			const Mesh::Triangle &tri = mesh->triangles[tidx];
-			const Vector3 p0 = mesh->positions[mesh->vertices[tri.vertexIndex0].positionIndex];
-			const Vector3 p1 = mesh->positions[mesh->vertices[tri.vertexIndex1].positionIndex];
-			const Vector3 p2 = mesh->positions[mesh->vertices[tri.vertexIndex2].positionIndex];
-			const Vector3 c = (p0 + p1 + p2) * (1.0f / 3.0f);
-			if (c.y <= yTest)
-			{
-				parent.children[0].triangles.push_back(tidx);
-				aabbMinL = min(aabbMinL, min(p0, min(p1, p2)));
-				aabbMaxL = max(aabbMaxL, max(p0, max(p1, p2)));
-			}
-			else
-			{
-				parent.children[1].triangles.push_back(tidx);
-				aabbMinR = min(aabbMinR, min(p0, min(p1, p2)));
-				aabbMaxR = max(aabbMaxR, max(p0, max(p1, p2)));
-			}
-		}
+	const Split split = findBestSplit(mesh, parent);
 
-	}
-	else
+	for (uint32_t tidx : parent.triangles)
 	{
-		// Divide Z
-		const float zTest = findSplit<AxisZ>(mesh, parent);
-		for (uint32_t tidx : parent.triangles)
+		const Mesh::Triangle &tri = mesh->triangles[tidx];
+		const Vector3 p0 = mesh->positions[mesh->vertices[tri.vertexIndex0].positionIndex];
+		const Vector3 p1 = mesh->positions[mesh->vertices[tri.vertexIndex1].positionIndex];
+		const Vector3 p2 = mesh->positions[mesh->vertices[tri.vertexIndex2].positionIndex];
+		const Vector3 c = (p0 + p1 + p2) * (1.0f / 3.0f);
+
+		const bool left =
+			((split.axis == Split::Axis::X) & (c.x <= split.split)) |
+			((split.axis == Split::Axis::Y) & (c.y <= split.split)) |
+			((split.axis == Split::Axis::Z) & (c.z <= split.split));
+
+		if (left)
 		{
-			const Mesh::Triangle &tri = mesh->triangles[tidx];
-			const Vector3 p0 = mesh->positions[mesh->vertices[tri.vertexIndex0].positionIndex];
-			const Vector3 p1 = mesh->positions[mesh->vertices[tri.vertexIndex1].positionIndex];
-			const Vector3 p2 = mesh->positions[mesh->vertices[tri.vertexIndex2].positionIndex];
-			const Vector3 c = (p0 + p1 + p2) * (1.0f / 3.0f);
-			if (c.z <= zTest)
-			{
-				parent.children[0].triangles.push_back(tidx);
-				aabbMinL = min(aabbMinL, min(p0, min(p1, p2)));
-				aabbMaxL = max(aabbMaxL, max(p0, max(p1, p2)));
-			}
-			else
-			{
-				parent.children[1].triangles.push_back(tidx);
-				aabbMinR = min(aabbMinR, min(p0, min(p1, p2)));
-				aabbMaxR = max(aabbMaxR, max(p0, max(p1, p2)));
-			}
+			parent.children[0].triangles.push_back(tidx);
+			aabbMinL = min(aabbMinL, min(p0, min(p1, p2)));
+			aabbMaxL = max(aabbMaxL, max(p0, max(p1, p2)));
+		}
+		else
+		{
+			parent.children[1].triangles.push_back(tidx);
+			aabbMinR = min(aabbMinR, min(p0, min(p1, p2)));
+			aabbMaxR = max(aabbMaxR, max(p0, max(p1, p2)));
 		}
 	}
 
@@ -171,6 +172,7 @@ void binaryDivisionBVH(const Mesh *mesh, const size_t maxTriangleCount, const si
 		// Unable to subdivide... We brake here
 		// TODO: Check if there is a way to improve this
 		parent.children.clear();
+		parent.subtreeTriangleCount = parent.triangles.size();
 		return;
 	}
 
@@ -199,8 +201,36 @@ void binaryDivisionBVH(const Mesh *mesh, const size_t maxTriangleCount, const si
 		parent.children[1].subtreeTriangleCount;
 }
 
+struct BVHStats
+{
+	size_t maxTriangles = 0;
+};
+
+void bvhStatistics(const BVH &root, BVHStats &stats)
+{
+	if (root.children.size() > 0)
+	{
+		bvhStatistics(root.children[0], stats);
+		bvhStatistics(root.children[1], stats);
+	}
+
+	if (stats.maxTriangles < root.triangles.size()) stats.maxTriangles = root.triangles.size();
+}
+
+#include <iostream>
+
+void bvhStatistics(const BVH &root)
+{
+	BVHStats stats;
+	bvhStatistics(root, stats);
+	std::cout << stats.maxTriangles << std::endl;
+}
+
 BVH* BVH::createBinary(const Mesh *mesh, const size_t maxTriangleCount, const size_t maxTreeDepth)
 {
+	Timing timing;
+	timing.begin();
+
 	Vector3 mins(FLT_MAX);
 	Vector3 maxs(-FLT_MAX);
 	for (size_t i = 0; i < mesh->positions.size(); ++i)
@@ -222,6 +252,11 @@ BVH* BVH::createBinary(const Mesh *mesh, const size_t maxTriangleCount, const si
 	}
 
 	binaryDivisionBVH(mesh, maxTriangleCount, maxTreeDepth, *bvh, 0);
+
+	bvhStatistics(*bvh);
+
+	timing.end();
+	logDebug("BVH", "BHV Creation took " + std::to_string(timing.elapsedSeconds()) + " seconds.");
 
 	return bvh;
 }
