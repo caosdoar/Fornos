@@ -22,7 +22,9 @@ SOFTWARE.
 
 #include "image.h"
 #include "compute.h"
+#include "logging.h"
 #include "math.h"
+#include "timing.h"
 #include <cassert>
 
 #pragma warning(disable:4996)
@@ -122,13 +124,19 @@ std::vector<bool> createValidPixelsTableRGB
 	return validPixels;
 }
 
+#define DEBUG 1
+
 void dilateRGB(uint8_t *data, const CompressedMapUV *map, const std::vector<bool> &validPixels, const size_t maxDist)
 {
+	Timing timing;
+	timing.begin();
+
 	const PixPos offsets[] = { { 1,0 },{ -1,0 },{ 0,1 },{ 0,-1 },{ 1,1 },{ 1,-1 },{ -1,1 },{ -1,-1 } };
 
 	const int w = int(map->width);
 	const int h = int(map->height);
 
+#pragma omp parallel for
 	for (int y = 0; y < h; ++y)
 	{
 		for (int x = 0; x < w; ++x)
@@ -172,6 +180,9 @@ void dilateRGB(uint8_t *data, const CompressedMapUV *map, const std::vector<bool
 			}
 		}
 	}
+
+	timing.end();
+	logDebug("Image", "Image dilation took " + std::to_string(timing.elapsedSeconds()) + " seconds.");
 }
 
 void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize, int dilate, Vector2 *o_minmax)

@@ -28,6 +28,7 @@ SOFTWARE.
 #include <imguifilesystem.h>
 #include <imgui_impl_glfw_gl3.h>
 #include <string>
+#include <cstdlib>
 
 static const char* normalImportNames[3] = { "Import", "Compute per face", "Compute per vertex" };
 
@@ -702,6 +703,7 @@ protected:
 	void renderWorkInProgress();
 	void renderErrors();
 	void renderLogWindow();
+	void renderAboutPopup();
 	void startBaking();
 
 private:
@@ -717,6 +719,7 @@ private:
 	std::string _bakeErrors;
 
 	bool _showLog = false;
+	bool _showAbout = false;
 	float _mainMenuHeight = 0;
 };
 
@@ -752,7 +755,7 @@ void FornosUI_Impl::render(int windowWidth, int windowHeight)
 
 	renderWorkInProgress();
 	renderErrors();
-
+	renderAboutPopup();
 }
 
 void FornosUI_Impl::renderMainMenu()
@@ -763,7 +766,7 @@ void FornosUI_Impl::renderMainMenu()
 		{
 			ImGui::MenuItem("Log", "CTRL+L", &_showLog);
 			ImGui::Separator();
-			if (ImGui::MenuItem("About")) { ImGui::OpenPopup("About"); }
+			ImGui::MenuItem("About", nullptr, &_showAbout);
 			ImGui::EndMenu();
 		}
 		_mainMenuHeight = ImGui::GetWindowHeight();
@@ -875,6 +878,27 @@ void FornosUI_Impl::renderLogWindow()
 	ImGui::End();
 }
 
+void FornosUI_Impl::renderAboutPopup()
+{
+	if (_showAbout && !ImGui::IsPopupOpen("AboutPopup"))
+	{
+		ImGui::OpenPopup("AboutPopup");
+	}
+
+	if (ImGui::BeginPopupModal("AboutPopup", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+	{
+		ImGui::Text("Fornos");
+		ImGui::Text("v0.1.1");
+		ImGui::Text("Oscar S.C. (c) 2018");
+		if (ImGui::Button("Ok"))
+		{
+			ImGui::CloseCurrentPopup();
+			_showAbout = false;
+		}
+		ImGui::EndPopup();
+	}
+}
+
 void FornosUI_Impl::startBaking()
 {
 	_runner->start(_params, _bakeErrors);
@@ -893,7 +917,16 @@ void FornosUI::init(FornosRunner *runner, GLFWwindow *window)
 {
 	_impl->setRunner(runner);
 	ImGui_ImplGlfwGL3_Init(window, true);
+	
 	SetupImGuiStyle(true, 1.0f);
+
+	ImGuiIO& io = ImGui::GetIO();
+
+#if _WIN32
+	const std::string windir = std::getenv("windir");
+	const std::string fontdir = windir + "\\fonts\\segoeui.ttf";
+	io.Fonts->AddFontFromFileTTF(fontdir.c_str(), 16.0f);
+#endif
 }
 
 void FornosUI::shutdown()
