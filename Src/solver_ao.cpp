@@ -137,9 +137,10 @@ float* AmbientOcclusionSolver::getResults()
 	return _resultsFinalCB->readData();
 }
 
-AmbientOcclusionTask::AmbientOcclusionTask(std::unique_ptr<AmbientOcclusionSolver> solver, const char *outputPath)
+AmbientOcclusionTask::AmbientOcclusionTask(std::unique_ptr<AmbientOcclusionSolver> solver, const char *outputPath, int dilation)
 	: _solver(std::move(solver))
 	, _outputPath(outputPath)
+	, _dilation(dilation)
 {
 }
 
@@ -157,7 +158,7 @@ void AmbientOcclusionTask::finish()
 {
 	assert(_solver);
 	float *results = _solver->getResults();
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true); // TODO: Normalize
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, _dilation); // TODO: Normalize
 	delete[] results;
 }
 

@@ -100,7 +100,7 @@ private:
 class BentNormalsTask : public FornosTask
 {
 public:
-	BentNormalsTask(std::unique_ptr<BentNormalsSolver> solver, const char *outputPath);
+	BentNormalsTask(std::unique_ptr<BentNormalsSolver> solver, const char *outputPath, int dilation = 0);
 	~BentNormalsTask();
 
 	bool runStep();
@@ -111,4 +111,5 @@ public:
 private:
 	std::unique_ptr<BentNormalsSolver> _solver;
 	std::string _outputPath;
+	int _dilation;
 };

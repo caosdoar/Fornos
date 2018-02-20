@@ -98,7 +98,7 @@ private:
 class ThicknessTask : public FornosTask
 {
 public:
-	ThicknessTask(std::unique_ptr<ThicknessSolver> solver, const char *outputPath);
+	ThicknessTask(std::unique_ptr<ThicknessSolver> solver, const char *outputPath, int dilation = 0);
 	~ThicknessTask();
 
 	bool runStep();
@@ -109,4 +109,5 @@ public:
 private:
 	std::unique_ptr<ThicknessSolver> _solver;
 	std::string _outputPath;
+	int _dilation;
 };

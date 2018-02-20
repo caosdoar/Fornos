@@ -97,9 +97,10 @@ float* NormalsSolver::getResults()
 	return results;
 }
 
-NormalsTask::NormalsTask(std::unique_ptr<NormalsSolver> solver, const char *outputPath)
+NormalsTask::NormalsTask(std::unique_ptr<NormalsSolver> solver, const char *outputPath, int dilation)
 	: _solver(std::move(solver))
 	, _outputPath(outputPath)
+	, _dilation(dilation)
 {
 }
 
@@ -118,7 +119,7 @@ void NormalsTask::finish()
 	assert(_solver);
 	Vector3 *results = (Vector3*)_solver->getResults();
 	auto map = _solver->uvMap();
-	exportNormalImage(results, _solver->uvMap().get(), _outputPath.c_str());
+	exportNormalImage(results, _solver->uvMap().get(), _outputPath.c_str(), _dilation);
 	delete[] results;
 }
 

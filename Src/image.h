@@ -27,7 +27,7 @@ struct CompressedMapUV;
 struct Vector2;
 struct Vector3;
 
-void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize = false, Vector2 *o_minmax = nullptr);
+void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize = false, int dilate = 0, Vector2 *o_minmax = nullptr);
 
 /// Export raw 3-channel-float data
 /// Only EXR files supported here!
@@ -42,4 +42,4 @@ void exportVectorImage(const Vector3 *data, const CompressedMapUV *map, const ch
 /// @param data Normals data
 /// @param map How the data should be stored on the map
 /// @param path Path to the file
-void exportNormalImage(const Vector3 *data, const CompressedMapUV *map, const char *path);
+void exportNormalImage(const Vector3 *data, const CompressedMapUV *map, const char *path, int dilate = 0);

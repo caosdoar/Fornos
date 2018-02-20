@@ -137,9 +137,10 @@ float* ThicknessSolver::getResults()
 	return _resultsFinalCB->readData();
 }
 
-ThicknessTask::ThicknessTask(std::unique_ptr<ThicknessSolver> solver, const char *outputPath)
+ThicknessTask::ThicknessTask(std::unique_ptr<ThicknessSolver> solver, const char *outputPath, int dilation)
 	: _solver(std::move(solver))
 	, _outputPath(outputPath)
+	, _dilation(dilation)
 {
 }
 
@@ -158,7 +159,7 @@ void ThicknessTask::finish()
 	assert(_solver);
 	float *results = _solver->getResults();
 	Vector2 minmax;
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, &minmax);
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, _dilation, &minmax);
 	delete[] results;
 	logDebug("Thickness", "Thickness map range: " + std::to_string(minmax.x) + " to " + std::to_string(minmax.y));
 }

@@ -60,7 +60,7 @@ private:
 class HeightTask : public FornosTask
 {
 public:
-	HeightTask(std::unique_ptr<HeightSolver> solver, const char *outputPath);
+	HeightTask(std::unique_ptr<HeightSolver> solver, const char *outputPath, int dilation = 0);
 	~HeightTask();
 
 	bool runStep();
@@ -71,4 +71,5 @@ public:
 private:
 	std::unique_ptr<HeightSolver> _solver;
 	std::string _outputPath;
+	int _dilation;
 };

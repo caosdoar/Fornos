@@ -68,7 +68,7 @@ private:
 class NormalsTask : public FornosTask
 {
 public:
-	NormalsTask(std::unique_ptr<NormalsSolver> solver, const char *outputPath);
+	NormalsTask(std::unique_ptr<NormalsSolver> solver, const char *outputPath, int dilation = 0);
 	~NormalsTask();
 
 	bool runStep();
@@ -79,4 +79,5 @@ public:
 private:
 	std::unique_ptr<NormalsSolver> _solver;
 	std::string _outputPath;
+	int _dilation;
 };

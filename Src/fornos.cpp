@@ -114,7 +114,9 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 		solverParams.maxDistance = params.thickness.maxDistance;
 		std::unique_ptr<ThicknessSolver> solver(new ThicknessSolver(solverParams));
 		solver->init(compressedMap, meshMapping);
-		_tasks.emplace_back(new ThicknessTask(std::move(solver), params.thickness.outputPath.c_str()));
+		_tasks.emplace_back(
+			new ThicknessTask(std::move(solver), params.thickness.outputPath.c_str(), params.shared.texDilation)
+		);
 	}
 
 	if (params.bentNormals.enabled)
@@ -126,7 +128,9 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 		solverParams.tangentSpace = params.bentNormals.tangentSpace;
 		std::unique_ptr<BentNormalsSolver> solver(new BentNormalsSolver(solverParams));
 		solver->init(compressedMap, meshMapping);
-		_tasks.emplace_back(new BentNormalsTask(std::move(solver), params.bentNormals.outputPath.c_str()));
+		_tasks.emplace_back(
+			new BentNormalsTask(std::move(solver), params.bentNormals.outputPath.c_str(), params.shared.texDilation)
+		);
 	}
 
 	if (params.ao.enabled)
@@ -137,7 +141,9 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 		solverParams.maxDistance = params.ao.maxDistance;
 		std::unique_ptr<AmbientOcclusionSolver> solver(new AmbientOcclusionSolver(solverParams));
 		solver->init(compressedMap, meshMapping);
-		_tasks.emplace_back(new AmbientOcclusionTask(std::move(solver), params.ao.outputPath.c_str()));
+		_tasks.emplace_back(
+			new AmbientOcclusionTask(std::move(solver), params.ao.outputPath.c_str(), params.shared.texDilation)
+		);
 	}
 
 	if (params.normals.enabled)
@@ -146,21 +152,27 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 		solverParams.tangentSpace = params.normals.tangentSpace;
 		std::unique_ptr<NormalsSolver> normalsSolver(new NormalsSolver(solverParams));
 		normalsSolver->init(compressedMap, meshMapping);
-		_tasks.emplace_back(new NormalsTask(std::move(normalsSolver), params.normals.outputPath.c_str()));
+		_tasks.emplace_back(
+			new NormalsTask(std::move(normalsSolver), params.normals.outputPath.c_str(), params.shared.texDilation)
+		);
 	}
 
 	if (params.positions.enabled)
 	{
 		std::unique_ptr<PositionSolver> solver(new PositionSolver());
 		solver->init(compressedMap, meshMapping);
-		_tasks.emplace_back(new PositionTask(std::move(solver), params.positions.outputPath.c_str()));
+		_tasks.emplace_back(
+			new PositionTask(std::move(solver), params.positions.outputPath.c_str())
+		);
 	}
 
 	if (params.height.enabled)
 	{
 		std::unique_ptr<HeightSolver> solver(new HeightSolver());
 		solver->init(compressedMap, meshMapping);
-		_tasks.emplace_back(new HeightTask(std::move(solver), params.height.outputPath.c_str()));
+		_tasks.emplace_back(
+			new HeightTask(std::move(solver), params.height.outputPath.c_str(), params.shared.texDilation)
+		);
 	}
 
 	_tasks.emplace_back(new MeshMappingTask(meshMapping));

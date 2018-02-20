@@ -98,7 +98,7 @@ private:
 class AmbientOcclusionTask : public FornosTask
 {
 public:
-	AmbientOcclusionTask(std::unique_ptr<AmbientOcclusionSolver> solver, const char *outputPath);
+	AmbientOcclusionTask(std::unique_ptr<AmbientOcclusionSolver> solver, const char *outputPath, int dilation = 0);
 	~AmbientOcclusionTask();
 
 	bool runStep();
@@ -109,4 +109,5 @@ public:
 private:
 	std::unique_ptr<AmbientOcclusionSolver> _solver;
 	std::string _outputPath;
+	int _dilation;
 };

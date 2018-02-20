@@ -76,7 +76,105 @@ Vector2 computeScaleBias(const Vector2 &minmax, bool normalize)
 	return Vector2(1.0f, 0.0f);
 }
 
-void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize, Vector2 *o_minmax)
+struct PixPos
+{
+	int x; 
+	int y;
+	PixPos operator -() const { return PixPos{ -x, -y }; }
+	PixPos operator +(const PixPos &o) const { return PixPos{ x + o.x, y + o.y }; }
+	PixPos operator -(const PixPos &o) const { return PixPos{ x - o.x, y - o.y }; }
+	PixPos operator *(const int k) const { return PixPos{ x * k, y * k }; }
+	PixPos operator *(const PixPos &o) const { return PixPos{ x * o.x, y * o.y }; }
+};
+
+std::vector<bool> createValidPixelsTable(const CompressedMapUV *map)
+{
+	std::vector<bool> validPixels(map->width * map->height);
+	for (const auto idx : map->indices)
+	{
+		validPixels[idx] = true;
+	}
+	return validPixels;
+}
+
+std::vector<bool> createValidPixelsTableRGB
+(
+	const CompressedMapUV *map, 
+	const uint8_t *data, 
+	uint8_t invalidR, 
+	uint8_t invalidG, 
+	uint8_t invalidB
+)
+{
+	const size_t w = map->width;
+	const size_t h = map->height;
+	std::vector<bool> validPixels(w * h);
+	for (const auto idx : map->indices)
+	{
+		const size_t x = idx % w;
+		const size_t y = idx / h;
+		const size_t pixIdx = ((h - y - 1) * w + x) * 3;
+		const uint8_t r = data[pixIdx + 0];
+		const uint8_t g = data[pixIdx + 1];
+		const uint8_t b = data[pixIdx + 2];
+		validPixels[idx] = (r != invalidR) | (g != invalidG) | (b != invalidB);
+	}
+	return validPixels;
+}
+
+void dilateRGB(uint8_t *data, const CompressedMapUV *map, const std::vector<bool> &validPixels, const size_t maxDist)
+{
+	const PixPos offsets[] = { { 1,0 },{ -1,0 },{ 0,1 },{ 0,-1 },{ 1,1 },{ 1,-1 },{ -1,1 },{ -1,-1 } };
+
+	const int w = int(map->width);
+	const int h = int(map->height);
+
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			if (!validPixels[x + y * w])
+			{
+				PixPos pos{ x, y };
+				bool filled = false;
+
+				for (size_t dist = 1; dist < maxDist && !filled; ++dist)
+				{
+					for (const PixPos offset : offsets)
+					{
+						PixPos centerPos = pos + offset * int(dist);
+						if (centerPos.x > 0 && centerPos.y > 0 && centerPos.x < w - 1 && centerPos.y < h - 1)
+						{
+							bool valid = true;
+							for (const PixPos o : offsets)
+							{
+								PixPos testPos = centerPos + o;
+								if (!validPixels[testPos.x + testPos.y * w])
+								{
+									valid = false;
+									break;
+								}
+							}
+
+							if (valid)
+							{
+								const size_t pixIdxSrc = ((h - centerPos.y - 1) * w + centerPos.x) * 3;
+								const size_t pixIdxDst = ((h - pos.y - 1) * w + pos.x) * 3;
+								data[pixIdxDst + 0] = data[pixIdxSrc + 0];
+								data[pixIdxDst + 1] = data[pixIdxSrc + 1];
+								data[pixIdxDst + 2] = data[pixIdxSrc + 2];
+								filled = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize, int dilate, Vector2 *o_minmax)
 {
 	assert(data);
 	assert(map);
@@ -112,6 +210,12 @@ void exportFloatImage(const float *data, const CompressedMapUV *map, const char 
 			rgb[pixidx + 0] = c;
 			rgb[pixidx + 1] = c;
 			rgb[pixidx + 2] = c;
+		}
+
+		if (dilate > 0)
+		{
+			const auto validPixels = createValidPixelsTable(map);
+			dilateRGB(rgb, map, validPixels, dilate);
 		}
 
 		if (ext == Extension::Png) stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);
@@ -231,7 +335,7 @@ void exportVectorImage(const Vector3 *data, const CompressedMapUV *map, const ch
 	delete[] header.requested_pixel_types;
 }
 
-void exportNormalImage(const Vector3 *data, const CompressedMapUV *map, const char *path)
+void exportNormalImage(const Vector3 *data, const CompressedMapUV *map, const char *path, int dilate)
 {
 	assert(data);
 	assert(map);
@@ -258,6 +362,12 @@ void exportNormalImage(const Vector3 *data, const CompressedMapUV *map, const ch
 			rgb[pixidx + 0] = uint8_t(n.x * 255.0f);
 			rgb[pixidx + 1] = uint8_t(n.y * 255.0f);
 			rgb[pixidx + 2] = uint8_t(n.z * 255.0f);
+		}
+
+		if (dilate > 0)
+		{
+			const auto validPixels = createValidPixelsTableRGB(map, rgb, 0, 0, 0);
+			dilateRGB(rgb, map, validPixels, dilate);
 		}
 
 		if (ext == Extension::Png) stbi_write_png(path, (int)w, (int)h, 3, rgb, (int)w * 3);

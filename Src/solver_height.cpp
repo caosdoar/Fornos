@@ -83,9 +83,10 @@ float* HeightSolver::getResults()
 	return results;
 }
 
-HeightTask::HeightTask(std::unique_ptr<HeightSolver> solver, const char *outputPath)
+HeightTask::HeightTask(std::unique_ptr<HeightSolver> solver, const char *outputPath, int dilation)
 	: _solver(std::move(solver))
 	, _outputPath(outputPath)
+	, _dilation(dilation)
 {
 }
 
@@ -105,7 +106,7 @@ void HeightTask::finish()
 	float *results = _solver->getResults();
 	auto map = _solver->uvMap();
 	Vector2 minmax;
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, &minmax);
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, _dilation, &minmax);
 	delete[] results;
 	logDebug("Height", "Height map range: " + std::to_string(minmax.x) + " to " + std::to_string(minmax.y));
 }

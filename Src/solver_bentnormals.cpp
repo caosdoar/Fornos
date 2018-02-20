@@ -149,9 +149,10 @@ Vector3* BentNormalsSolver::getResults()
 	return _resultsFinalCB->readData();
 }
 
-BentNormalsTask::BentNormalsTask(std::unique_ptr<BentNormalsSolver> solver, const char *outputPath)
+BentNormalsTask::BentNormalsTask(std::unique_ptr<BentNormalsSolver> solver, const char *outputPath, int dilation)
 	: _solver(std::move(solver))
 	, _outputPath(outputPath)
+	, _dilation(dilation)
 {
 }
 
@@ -169,7 +170,7 @@ void BentNormalsTask::finish()
 {
 	assert(_solver);
 	Vector3 *results = _solver->getResults();
-	exportNormalImage(results, _solver->uvMap().get(), _outputPath.c_str());
+	exportNormalImage(results, _solver->uvMap().get(), _outputPath.c_str(), _dilation);
 	delete[] results;
 }
 

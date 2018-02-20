@@ -354,6 +354,11 @@ void FornosParameters_Shared_View::render(int windowWidth, int windowHeight)
 		"Texture output size (width x height).\n"
 		"Control+click to edit the number.");
 
+	parameter("Tex Dilation", &data->texDilation, "##texDilation",
+		"Fills empty areas of the generated image with neighbour pixels.\n"
+		"This value is the distance (in pixels) for searching a pixel with data to use.\n"
+		"A value of zero will produce no dilation.");
+
 	parameter("Ignore backfaces", &data->ignoreBackfaces, "##ignoreBackface",
 		"If checked faces on the oposite direction to the low-poly mesh normal will be ignored during mesh mapping.");
 
