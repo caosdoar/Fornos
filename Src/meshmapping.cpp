@@ -128,7 +128,8 @@ void MeshMapping::init
 (
 	std::shared_ptr<const CompressedMapUV> map,
 	std::shared_ptr<const Mesh> mesh,
-	std::shared_ptr<const BVH> rootBVH
+	std::shared_ptr<const BVH> rootBVH,
+	bool cullBackfaces
 )
 {
 	// Pixels data
@@ -173,7 +174,10 @@ void MeshMapping::init
 	// Shader
 	{
 		_program = LoadComputeShader_MeshMapping();
+		_programCullBackfaces = LoadComputeShader_MeshMappingCullBackfaces();
 	}
+
+	_cullBackfaces = cullBackfaces;
 
 	_workOffset = 0;
 }
@@ -187,7 +191,8 @@ bool MeshMapping::runStep()
 
 	if (_workOffset == 0) _timing.begin();
 
-	glUseProgram(_program);
+	if (_cullBackfaces) glUseProgram(_programCullBackfaces);
+	else glUseProgram(_program);
 
 	glUniform1ui(1, (GLuint)_workOffset);
 	glUniform1ui(2, (GLuint)_coords->size());

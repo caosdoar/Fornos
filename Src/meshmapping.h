@@ -40,7 +40,7 @@ struct BVHGPUData
 class MeshMapping
 {
 public:
-	void init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<const Mesh> mesh, std::shared_ptr<const BVH> rootBVH);
+	void init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<const Mesh> mesh, std::shared_ptr<const BVH> rootBVH, bool cullBackfaces = false);
 	bool runStep();
 
 	inline float progress() const { return (float)_workOffset / (float)_workCount; }
@@ -57,6 +57,7 @@ public:
 private:
 	size_t _workOffset;
 	size_t _workCount;
+	bool _cullBackfaces = false;
 
 	std::unique_ptr<ComputeBuffer<Vector4> > _coords;
 	std::unique_ptr<ComputeBuffer<uint32_t> > _tidx;
@@ -66,6 +67,7 @@ private:
 	std::unique_ptr<ComputeBuffer<Vector4> > _meshNormals;
 	std::unique_ptr<ComputeBuffer<BVHGPUData> > _bvh;
 	GLuint _program;
+	GLuint _programCullBackfaces;
 
 	Timing _timing;
 };

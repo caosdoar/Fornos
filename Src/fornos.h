@@ -43,6 +43,7 @@ struct FornosParameters_Shared
 	int bvhTrisPerNode = 8;
 	int texWidth = 2048;
 	int texHeight = 2048;
+	bool ignoreBackfaces = true;
 };
 
 struct FornosParameters_SolverHeight

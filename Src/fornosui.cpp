@@ -354,6 +354,9 @@ void FornosParameters_Shared_View::render(int windowWidth, int windowHeight)
 		"Texture output size (width x height).\n"
 		"Control+click to edit the number.");
 
+	parameter("Ignore backfaces", &data->ignoreBackfaces, "##ignoreBackface",
+		"If checked faces on the oposite direction to the low-poly mesh normal will be ignored during mesh mapping.");
+
 	parameter("BVH Tri. Count", &data->bvhTrisPerNode, "##BvhTriCount",
 		"Maximum number of triangles per BVH leaf node.");
 

@@ -104,7 +104,7 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 	std::shared_ptr<BVH> rootBVH(BVH::createBinary(hiPolyMesh.get(), params.shared.bvhTrisPerNode, 8192));
 
 	std::shared_ptr<MeshMapping> meshMapping(new MeshMapping());
-	meshMapping->init(compressedMap, hiPolyMesh, rootBVH);
+	meshMapping->init(compressedMap, hiPolyMesh, rootBVH, params.shared.ignoreBackfaces);
 
 	if (params.thickness.enabled)
 	{

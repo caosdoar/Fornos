@@ -26,6 +26,7 @@ SOFTWARE.
 #include <glad/glad.h>
 
 GLuint LoadComputeShader_MeshMapping();
+GLuint LoadComputeShader_MeshMappingCullBackfaces();
 
 GLuint LoadComputeShader_AO_GenData();
 GLuint LoadComputeShader_AO_Sampling();

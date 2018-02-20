@@ -35,6 +35,15 @@ GLuint LoadComputeShader_MeshMapping()
 #endif
 }
 
+GLuint LoadComputeShader_MeshMappingCullBackfaces()
+{
+#if COMPUTE_SHADER_FROM_FILES
+	return CreateComputeProgram("D:\\Code\\Fornos\\Shaders\\meshmapping_nobackfaces.comp");
+#else
+	return CreateComputeProgramFromMemory(meshmapping_nobackfaces_comp);
+#endif
+}
+
 GLuint LoadComputeShader_AO_GenData()
 {
 #if COMPUTE_SHADER_FROM_FILES
