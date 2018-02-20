@@ -23,35 +23,73 @@ SOFTWARE.
 #include "logging.h"
 #include <iostream>
 
+static std::string logBuffer;
+static bool logBufferEnabled = true;
+
 #define DEBUG 0
 
 #if _WIN32 && DEBUG
 #include <Windows.h>
 #endif
 
-void logDebug(const std::string &module, const std::string &str)
+namespace
 {
-#if _WIN32 && DEBUG
-	OutputDebugString(("DEBG [" + module + "]" + str + "\n").c_str());
-#else
-	std::cout << "DEBG [" << module << "]" << str << std::endl;
-#endif
+	std::string makeString(const std::string &lvl, const std::string mod, const std::string msg)
+	{
+		return lvl + " [" + mod + "] " + msg + "\n";
+	}
 }
 
-void logWarning(const std::string &module, const std::string &str)
+void logDebug(const std::string &module, const std::string &msg)
 {
+	const auto str = makeString("DEBG", module, msg);
 #if _WIN32 && DEBUG
-	OutputDebugString(("WARN [" + module + "]" + str + "\n").c_str());
+	OutputDebugString(str.c_str());
 #else
-	std::cout << "WARN [" << module << "]" << str << std::endl;
+	std::cout << str;
 #endif
+	if (logBufferEnabled) logBuffer += str;
 }
 
-void logError(const std::string &module, const std::string &str)
+void logWarning(const std::string &module, const std::string &msg)
 {
+	const auto str = makeString("WARN", module, msg);
 #if _WIN32 && DEBUG
-	OutputDebugString(("ERRO [" + module + "]" + str + "\n").c_str());
+	OutputDebugString(str.c_str());
 #else
-	std::cerr << "ERRO [" << module << "]" << str << std::endl;
+	std::cout << str;
 #endif
+	if (logBufferEnabled) logBuffer += str;
+}
+
+void logError(const std::string &module, const std::string &msg)
+{
+	const auto str = makeString("ERRO", module, msg);
+#if _WIN32 && DEBUG
+	OutputDebugString(str.c_str());
+#else
+	std::cerr << str;
+#endif
+	if (logBufferEnabled) logBuffer += str;
+}
+
+void enableLogBuffer()
+{
+	logBufferEnabled = true;
+}
+
+void disableLogBuffer()
+{
+	logBufferEnabled = false;
+	logBuffer.clear();
+}
+
+void clearLogBuffer()
+{
+	logBuffer.clear();
+}
+
+const std::string& getLogBuffer()
+{
+	return logBuffer;
 }

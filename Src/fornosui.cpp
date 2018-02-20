@@ -22,6 +22,7 @@ SOFTWARE.
 
 #include "fornosui.h"
 #include "fornos.h"
+#include "logging.h"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imguifilesystem.h>
@@ -688,9 +689,11 @@ public:
 	void setRunner(FornosRunner *runner) { _runner = runner;  }
 
 protected:
+	void renderMainMenu();
 	void renderParameters(int windowWidth, int windowHeight);
 	void renderWorkInProgress();
 	void renderErrors();
+	void renderLogWindow();
 	void startBaking();
 
 private:
@@ -704,6 +707,9 @@ private:
 	FornosParameters_SolverThickness_View _paramsSolverThicknessView;
 	FornosRunner *_runner = nullptr;
 	std::string _bakeErrors;
+
+	bool _showLog = false;
+	float _mainMenuHeight = 0;
 };
 
 FornosUI_Impl::FornosUI_Impl()
@@ -720,15 +726,45 @@ FornosUI_Impl::FornosUI_Impl()
 void FornosUI_Impl::render(int windowWidth, int windowHeight)
 {
 	ImGui_ImplGlfwGL3_NewFrame();
+
+	renderMainMenu();
+
+	const float logWindowHeight = _showLog ? 200.0f : 0.0f;
+	const float mainWindowHeight = float(windowHeight) - logWindowHeight - _mainMenuHeight;
+	const float mainWindowPosY = _mainMenuHeight;
+	const float logWindowPosY = mainWindowHeight + mainWindowPosY;
+
+	ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)mainWindowHeight));
+	ImGui::SetNextWindowPos(ImVec2(0.0f, _mainMenuHeight));
 	renderParameters(windowWidth, windowHeight);
+
+	ImGui::SetNextWindowSize(ImVec2(float(windowWidth), logWindowHeight));
+	ImGui::SetNextWindowPos(ImVec2(0.0f, logWindowPosY));
+	renderLogWindow();
+
 	renderWorkInProgress();
 	renderErrors();
+
+}
+
+void FornosUI_Impl::renderMainMenu()
+{
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Window"))
+		{
+			ImGui::MenuItem("Log", "CTRL+L", &_showLog);
+			ImGui::Separator();
+			if (ImGui::MenuItem("About")) { ImGui::OpenPopup("About"); }
+			ImGui::EndMenu();
+		}
+		_mainMenuHeight = ImGui::GetWindowHeight();
+		ImGui::EndMainMenuBar();
+	}
 }
 
 void FornosUI_Impl::renderParameters(int windowWidth, int windowHeight)
 {
-	ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 	ImGui::Begin(
 		"Texture baking",
 		nullptr,
@@ -818,6 +854,17 @@ void FornosUI_Impl::renderErrors()
 		}
 		ImGui::EndPopup();
 	}
+}
+
+void FornosUI_Impl::renderLogWindow()
+{
+	ImGui::Begin("Log", &_showLog,
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoMove);
+	ImGui::TextUnformatted(getLogBuffer().c_str());
+	ImGui::SetScrollHere(1.0f);
+	ImGui::End();
 }
 
 void FornosUI_Impl::startBaking()

@@ -27,3 +27,7 @@ SOFTWARE.
 void logDebug(const std::string &module, const std::string &str);
 void logWarning(const std::string &module, const std::string &str);
 void logError(const std::string &module, const std::string &str);
+void enableLogBuffer();
+void disableLogBuffer();
+void clearLogBuffer();
+const std::string& getLogBuffer();
