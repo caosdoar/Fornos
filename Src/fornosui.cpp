@@ -361,11 +361,13 @@ void FornosParameters_Shared_View::render(int windowWidth, int windowHeight)
 		"This value is the distance (in pixels) for searching a pixel with data to use.\n"
 		"A value of zero will produce no dilation.");
 
-	parameter("Ignore backfaces", &data->ignoreBackfaces, "##ignoreBackface",
-		"If checked faces on the oposite direction to the low-poly mesh normal will be ignored during mesh mapping.");
-
 	parameter<MeshMappingMethod>("Mapping method", &data->mapping, meshMappingMethodNames, 2, "#meshMapping",
-		""); // TODO
+		"How rays are generated to map the low-poly mesh to the high-poly mesh.\n"
+		"Smooth creates continuous direction for the rays.\n"
+		"Low-poly normals uses the normal direction imported or computed for the low-poly mesh");
+
+	parameter("Ignore backfaces", &data->ignoreBackfaces, "##ignoreBackface",
+		"If checked faces on the oposite direction to the mesh-mapping rays will be ignored during mesh mapping.");
 
 	parameter("BVH Tri. Count", &data->bvhTrisPerNode, "##BvhTriCount",
 		"Maximum number of triangles per BVH leaf node.");
