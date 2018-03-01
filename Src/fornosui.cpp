@@ -27,6 +27,7 @@ SOFTWARE.
 #include <imgui_internal.h>
 #include <imguifilesystem.h>
 #include <imgui_impl_glfw_gl3.h>
+#include <glfw/glfw3.h>
 #include <string>
 #include <cstdlib>
 
@@ -777,6 +778,11 @@ void FornosUI_Impl::renderMainMenu()
 		}
 		_mainMenuHeight = ImGui::GetWindowHeight();
 		ImGui::EndMainMenuBar();
+	}
+
+	if (ImGui::IsKeyPressed(GLFW_KEY_L, false) && ImGui::GetIO().KeyCtrl)
+	{
+		_showLog = !_showLog;
 	}
 }
 
