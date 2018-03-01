@@ -123,9 +123,8 @@ bool BentNormalsSolver::runStep()
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		glUseProgram(_tanspaceProgram);
 		glUniform1ui(1, GLuint(_workOffset / _params.sampleCount));
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _meshMapping->pixels()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _meshMapping->pixelst()->bo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _resultsFinalCB->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _meshMapping->pixelst()->bo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _resultsFinalCB->bo());
 		glDispatchCompute((GLuint)(work / _params.sampleCount / k_groupSize), 1, 1);
 	}
 

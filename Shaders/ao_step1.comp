@@ -14,12 +14,6 @@ struct Params
 	float maxDistance;
 };
 
-struct Pixel
-{
-	vec3 p;
-	vec3 n;
-};
-
 struct BVH
 {
 	float aabbMinX; float aabbMinY; float aabbMinZ;
@@ -48,10 +42,6 @@ layout(std430, binding = 8) writeonly buffer resultAccBuffer { float results[]; 
 
 float RayAABB(vec3 o, vec3 d, vec3 mins, vec3 maxs)
 {
-	//vec3 dabs = abs(d);
-	//if (dabs.x < 0.0001) d.x = 0.0001;
-	//if (dabs.y < 0.0001) d.y = 0.0001;
-	//if (dabs.z < 0.0001) d.z = 0.0001;
 	vec3 t1 = (mins - o) / d;
 	vec3 t2 = (maxs - o) / d;
 	vec3 tmin = min(t1, t2);
@@ -72,7 +62,6 @@ vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c)
 	float d20 = dot(v2, v0);
 	float d21 = dot(v2, v1);
 	float denom = d00 * d11 - d01 * d01;
-	//if (abs(denom) < 0.00001) return vec3(-1,-1,-1);
 	float y = (d11 * d20 - d01 * d21) / denom;
 	float z = (d00 * d21 - d01 * d20) / denom;
 	return vec3(1.0 - y - z, y, z);

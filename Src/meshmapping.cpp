@@ -40,7 +40,7 @@ namespace
 		{
 			auto &pix = pixels[i];
 			pix.p = map->positions[i];
-			pix.n = map->normals[i];
+			pix.d = map->directions[i];
 		}
 		return pixels;
 	}
@@ -52,6 +52,7 @@ namespace
 		for (size_t i = 0; i < count; ++i)
 		{
 			auto &pix = pixels[i];
+			pix.n = map->normals[i];
 			pix.t = map->tangents[i];
 			pix.b = map->bitangents[i];
 		}

@@ -6,14 +6,9 @@ layout (local_size_x = 64) in;
 
 #define TANGENT_SPACE 1
 
-struct Pixel
-{
-	vec3 p;
-	vec3 n;
-};
-
 struct PixelT
 {
+	vec3 n;
 	vec3 t;
 	vec3 b;
 };
@@ -21,9 +16,8 @@ struct PixelT
 struct V3 { float x; float y; float z; };
 
 layout(location = 1) uniform uint workOffset;
-layout(std430, binding = 2) readonly buffer pixBuffer { Pixel pixels[]; };
-layout(std430, binding = 3) readonly buffer pixtBuffer { PixelT pixelst[]; };
-layout(std430, binding = 4) buffer resultBuffer { V3 results[]; };
+layout(std430, binding = 2) readonly buffer pixtBuffer { PixelT pixelst[]; };
+layout(std430, binding = 3) buffer resultBuffer { V3 results[]; };
 
 void main()
 {
@@ -32,9 +26,8 @@ void main()
 
 	vec3 normal = vec3(results[result_idx].x, results[result_idx].y, results[result_idx].z);
 
-	Pixel pix = pixels[result_idx];
 	PixelT pixt = pixelst[result_idx];
-	vec3 n = pix.n;
+	vec3 n = pixt.n;
 	vec3 t = pixt.t;
 	vec3 b = pixt.b;
 	vec3 d0 = vec3(n.z*b.y - n.y*b.z, n.x*b.z - n.z*b.x, n.y*b.x - n.x*b.y);

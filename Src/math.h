@@ -45,6 +45,8 @@ struct Vector2
 	Vector2 operator -(const Vector2 &o) const { return Vector2(x - o.x, y - o.y); }
 	Vector2 operator *(const float k) const { return Vector2(x * k, y * k); }
 	Vector2 operator *(const Vector2 &o) const { return Vector2(x * o.x, y * o.y); }
+	Vector2 operator /(const float k) const { return Vector2(x / k, y / k); }
+	Vector2 operator /(const Vector2 &o) const { return Vector2(x / o.x, y / o.y); }
 };
 
 inline float dot(const Vector2 &v0, const Vector2 &v1)

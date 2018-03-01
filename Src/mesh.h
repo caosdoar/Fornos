@@ -36,7 +36,6 @@ struct IntersectResult
 class Mesh
 {
 public:
-
 	struct Vertex
 	{
 		uint32_t positionIndex;
@@ -63,9 +62,11 @@ public:
 	static Mesh* loadWavefrontObj(const char *path);
 	static Mesh* loadPly(const char *path);
 	static Mesh* loadFile(const char *path);
+	static Mesh* createCopy(const Mesh *mesh);
 
 	void computeFaceNormals();
 	void computeVertexNormals();
+	void computeVertexNormalsAggressive();
 	void computeTangentSpace();
 
 	bool intersect(const Vector3 &o, const Vector3 &d, IntersectResult &o_result) const;

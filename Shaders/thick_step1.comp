@@ -4,14 +4,6 @@
 
 layout (local_size_x = 64) in;
 
-#define BUFFER_PARAMS 3
-#define BUFFER_PIXELS 4
-#define BUFFER_POSITIONS 12
-#define BUFFER_BVH 8
-#define BUFFER_SAMPLES 13
-#define BUFFER_RESULTS_ACC 11
-#define BUFFER_INPUTS 14
-
 #define FLT_MAX 3.402823466e+38
 
 struct Params
@@ -20,12 +12,6 @@ struct Params
 	uint samplePermCount;
 	float minDistance;
 	float maxDistance;
-};
-
-struct Pixel
-{
-	vec3 p;
-	vec3 n;
 };
 
 struct BVH
@@ -76,7 +62,6 @@ vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c)
 	float d20 = dot(v2, v0);
 	float d21 = dot(v2, v1);
 	float denom = d00 * d11 - d01 * d01;
-	//if (abs(denom) < 0.00001) return vec3(-1,-1,-1);
 	float y = (d11 * d20 - d01 * d21) / denom;
 	float z = (d00 * d21 - d01 * d20) / denom;
 	return vec3(1.0 - y - z, y, z);

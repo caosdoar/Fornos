@@ -31,6 +31,7 @@ SOFTWARE.
 #include <cstdlib>
 
 static const char* normalImportNames[3] = { "Import", "Compute per face", "Compute per vertex" };
+static const char* meshMappingMethodNames[2] = { "Smooth", "Low-poly normals" };
 
 inline void SetupImGuiStyle(bool bStyleDark_, float alpha_)
 {
@@ -362,6 +363,9 @@ void FornosParameters_Shared_View::render(int windowWidth, int windowHeight)
 
 	parameter("Ignore backfaces", &data->ignoreBackfaces, "##ignoreBackface",
 		"If checked faces on the oposite direction to the low-poly mesh normal will be ignored during mesh mapping.");
+
+	parameter<MeshMappingMethod>("Mapping method", &data->mapping, meshMappingMethodNames, 2, "#meshMapping",
+		""); // TODO
 
 	parameter("BVH Tri. Count", &data->bvhTrisPerNode, "##BvhTriCount",
 		"Maximum number of triangles per BVH leaf node.");

@@ -16,16 +16,18 @@ struct Pix_GPUData
 {
 	Vector3 p;
 	float _pad0;
-	Vector3 n;
+	Vector3 d;
 	float _pad1;
 };
 
 struct PixT_GPUData
 {
-	Vector3 t;
+	Vector3 n;
 	float _pad0;
-	Vector3 b;
+	Vector3 t;
 	float _pad1;
+	Vector3 b;
+	float _pad2;
 };
 
 struct BVHGPUData

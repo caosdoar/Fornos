@@ -20,11 +20,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#define DEBUG_EXPORT_DIRECTIONS_MAP 0
+
 #include "compute.h"
 #include "logging.h"
 #include "math.h"
 #include "mesh.h"
 #include <fstream>
+
+#if DEBUG_EXPORT_DIRECTIONS_MAP
+#include "image.h"
+#endif
 
 GLuint CreateComputeProgram(const char *path)
 {
@@ -64,28 +70,19 @@ inline GLuint CreateComputeProgramFromMemory(const char *src)
 	return program;
 }
 
-MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
+namespace
 {
-	assert(mesh);
-
-	MapUV *map = new MapUV(width, height);
-
-	const float ustep = 1.0f / (float)width;
-	const float vstep = 1.0f / (float)height;
-	const Vector2 pixsize(ustep, vstep);
-	const Vector2 halfpix(0.5f * ustep, 0.5f * vstep);
-
-	//if (computeTangentSpace)
+	bool rasterTriangle
+	(
+		const Mesh *mesh,
+		const Mesh *meshForMapping,
+		const Mesh::Triangle &tri, 
+		const Vector2 &pixsize, 
+		const Vector2 &halfpix, 
+		const Vector2 &scale, 
+		MapUV *map
+	)
 	{
-		const size_t size = map->normals.size();
-		map->tangents.resize(size);
-		map->bitangents.resize(size);
-	}
-
-	//for (int vindex = 0; vindex < mesh->positions.size(); vindex += 3)
-	for (const auto &tri : mesh->triangles)
-	{
-		// Rasterize triangle
 		const auto &v0 = mesh->vertices[tri.vertexIndex0];
 		const auto &v1 = mesh->vertices[tri.vertexIndex1];
 		const auto &v2 = mesh->vertices[tri.vertexIndex2];
@@ -97,19 +94,34 @@ MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 			v1.normalIndex == UINT32_MAX ||
 			v2.normalIndex == UINT32_MAX)
 		{
-			delete map;
-			return nullptr;
+			return false;
 		}
 
 		const Vector3 p0 = mesh->positions[v0.positionIndex];
 		const Vector3 p1 = mesh->positions[v1.positionIndex];
 		const Vector3 p2 = mesh->positions[v2.positionIndex];
+
 		const Vector2 u0 = mesh->texcoords[v0.texcoordIndex];
 		const Vector2 u1 = mesh->texcoords[v1.texcoordIndex];
 		const Vector2 u2 = mesh->texcoords[v2.texcoordIndex];
+
 		const Vector3 n0 = mesh->normals[v0.normalIndex];
 		const Vector3 n1 = mesh->normals[v1.normalIndex];
 		const Vector3 n2 = mesh->normals[v2.normalIndex];
+
+		Vector3 d0 = n0;
+		Vector3 d1 = n1;
+		Vector3 d2 = n2;
+		if (meshForMapping)
+		{
+			const auto &mv0 = meshForMapping->vertices[tri.vertexIndex0];
+			const auto &mv1 = meshForMapping->vertices[tri.vertexIndex1];
+			const auto &mv2 = meshForMapping->vertices[tri.vertexIndex2];
+			d0 = meshForMapping->normals[mv0.normalIndex];
+			d1 = meshForMapping->normals[mv1.normalIndex];
+			d2 = meshForMapping->normals[mv2.normalIndex];
+		}
+
 		const Vector3 t0 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex0];
 		const Vector3 t1 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex1];
 		const Vector3 t2 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex2];
@@ -118,7 +130,6 @@ MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 		const Vector3 b2 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex2];
 
 		// Note: Surely not the fastest algorithm
-		const Vector2 scale((float)width, (float)height);
 		const Vector2 u01 = (u0 - halfpix) * scale;
 		const Vector2 u11 = (u1 - halfpix) * scale;
 		const Vector2 u21 = (u2 - halfpix) * scale;
@@ -134,21 +145,65 @@ MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
 				const Vector2 xy((float)x, (float)y);
 				const Vector2 uv = xy * pixsize + halfpix;
 				const Vector3 b = Barycentric(uv, u0, u1, u2);
-				if (b.x >= 0 && b.y >= 0 && b.z >= 0)
+				if (b.x >= -0.001f && b.x <= 1 && 
+					b.y >= -0.001f && b.y <= 1 && 
+					b.z >= -0.001f && b.z <= 1)
 				{
-					Vector3 p = p0 * b.x + p1 * b.y + p2 * b.z;
-					Vector3 n = normalize(n0 * b.x + n1 * b.y + n2 * b.z);
-					int i = y * width + x;
-					map->positions[i] = p;
-					map->normals[i] = n;
+					int i = y * map->width + x;
+					map->positions[i] = p0 * b.x + p1 * b.y + p2 * b.z;
+					map->directions[i] = normalize(d0 * b.x + d1 * b.y + d2 * b.z);
+					map->normals[i] = normalize(n0 * b.x + n1 * b.y + n2 * b.z);
 					map->tangents[i] = normalize(t0 * b.x + t1 * b.y + t2 * b.z);
 					map->bitangents[i] = normalize(b0 * b.x + b1 * b.y + b2 * b.z);
 				}
 			}
 		}
+
+		return true;
 	}
 
-	return map;
+	MapUV* createMapUV(const Mesh *mesh, const Mesh *meshDirs, uint32_t width, uint32_t height)
+	{
+		assert(mesh);
+
+		MapUV *map = new MapUV(width, height);
+
+		const Vector2 scale((float)width, (float)height);
+		const Vector2 pixsize = Vector2(1.0f) / scale;
+		const Vector2 halfpix = pixsize * 0.5f;
+
+		//if (computeTangentSpace)
+		{
+			const size_t size = map->normals.size();
+			map->tangents.resize(size);
+			map->bitangents.resize(size);
+		}
+
+		//for (int vindex = 0; vindex < mesh->positions.size(); vindex += 3)
+		for (const auto &tri : mesh->triangles)
+		{
+			if (!rasterTriangle(mesh, meshDirs, tri, pixsize, halfpix, scale, map))
+			{
+				delete map;
+				return nullptr;
+			}
+		}
+
+		return map;
+	}
+}
+
+MapUV* MapUV::fromMesh(const Mesh *mesh, uint32_t width, uint32_t height)
+{
+	assert(mesh);
+	return createMapUV(mesh, nullptr, width, height);
+}
+
+MapUV* MapUV::fromMeshes(const Mesh *mesh, const Mesh *meshDirs, uint32_t width, uint32_t height)
+{
+	assert(mesh);
+	assert(meshDirs);
+	return createMapUV(mesh, meshDirs, width, height);
 }
 
 CompressedMapUV::CompressedMapUV(const MapUV *map)
@@ -158,9 +213,9 @@ CompressedMapUV::CompressedMapUV(const MapUV *map)
 	assert(map);
 	assert(map->normals.size() > 0);
 
-	for (size_t i = 0; i < map->normals.size(); ++i)
+	for (size_t i = 0; i < map->directions.size(); ++i)
 	{
-		const Vector3 n = map->normals[i];
+		const Vector3 n = map->directions[i];
 		if (dot(n, n) > 0.5f) // With normal data
 		{
 			indices.emplace_back((uint32_t)i);
@@ -168,25 +223,31 @@ CompressedMapUV::CompressedMapUV(const MapUV *map)
 	}
 
 	positions.resize(indices.size());
-	normals.resize(indices.size());
+	directions.resize(indices.size());
 	for (size_t i = 0; i < indices.size(); ++i)
 	{
 		const size_t idx = indices[i];
 		positions[i] = map->positions[idx];
-		normals[i] = map->normals[idx];
+		directions[i] = map->directions[idx];
 	}
 
 	if (map->tangents.size() > 0)
 	{
 		assert(map->bitangents.size() == map->tangents.size());
 
+		normals.resize(indices.size());
 		tangents.resize(indices.size());
 		bitangents.resize(indices.size());
 		for (size_t i = 0; i < indices.size(); ++i)
 		{
 			const size_t idx = indices[i];
+			normals[i] = map->normals[idx];
 			tangents[i] = map->tangents[idx];
 			bitangents[i] = map->bitangents[idx];
 		}
 	}
+
+#if DEBUG_EXPORT_DIRECTIONS_MAP
+	exportNormalImage(&directions[0], this, "D:\\asdf.png");
+#endif
 }

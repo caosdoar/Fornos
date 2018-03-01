@@ -33,6 +33,7 @@ class FornosTask;
 //
 
 enum NormalImport { Import = 0, ComputePerFace = 1, ComputePerVertex = 2 };
+enum MeshMappingMethod { Smooth = 0, LowPolyNormals = 1 };
 
 struct FornosParameters_Shared
 {
@@ -45,6 +46,7 @@ struct FornosParameters_Shared
 	int texHeight = 2048;
 	int texDilation = 16;
 	bool ignoreBackfaces = true;
+	MeshMappingMethod mapping = MeshMappingMethod::Smooth;
 };
 
 struct FornosParameters_SolverHeight

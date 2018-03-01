@@ -93,7 +93,39 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 		lowPolyMesh->computeTangentSpace();
 	}
 
-	std::shared_ptr<MapUV> map(MapUV::fromMesh(lowPolyMesh.get(), params.shared.texWidth, params.shared.texHeight));
+	std::shared_ptr<MapUV> map;
+	
+	switch (params.shared.mapping)
+	{
+	case MeshMappingMethod::Smooth:
+	{
+		std::shared_ptr<Mesh> lowPolyMeshForMapping;
+		if (params.shared.loPolyMeshNormal != NormalImport::ComputePerVertex)
+		{
+			lowPolyMeshForMapping = std::shared_ptr<Mesh>(Mesh::createCopy(lowPolyMesh.get()));
+			lowPolyMeshForMapping->computeVertexNormalsAggressive();
+		}
+		else
+		{
+			lowPolyMeshForMapping = lowPolyMesh;
+		}
+
+		map = std::shared_ptr<MapUV>(MapUV::fromMeshes(
+			lowPolyMesh.get(),
+			lowPolyMeshForMapping.get(),
+			params.shared.texWidth,
+			params.shared.texHeight));
+	} break;
+
+	case MeshMappingMethod::LowPolyNormals:
+	{
+		map = std::shared_ptr<MapUV>(MapUV::fromMesh(
+			lowPolyMesh.get(),
+			params.shared.texWidth,
+			params.shared.texHeight));
+	} break;
+	}
+	
 	if (!map)
 	{
 		errors = "Low poly mesh is missing texture coordinates or normals information";

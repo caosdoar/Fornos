@@ -214,6 +214,7 @@ private:
 struct MapUV
 {
 	std::vector<Vector3> positions;
+	std::vector<Vector3> directions;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> tangents;
 	std::vector<Vector3> bitangents;
@@ -225,6 +226,7 @@ struct MapUV
 		: width(w)
 		, height(h)
 		, positions(w * h, Vector3())
+		, directions(w * h, Vector3())
 		, normals(w * h, Vector3())
 	{
 	}
@@ -234,6 +236,7 @@ struct MapUV
 	/// @param width Map width
 	/// @param height Map height
 	static MapUV* fromMesh(const Mesh *mesh, uint32_t width, uint32_t height);
+	static MapUV* fromMeshes(const Mesh *mesh, const Mesh *meshDirs, uint32_t width, uint32_t height);
 };
 
 /// MapUV without any pixels with no data
@@ -241,6 +244,7 @@ struct MapUV
 struct CompressedMapUV
 {
 	std::vector<Vector3> positions;
+	std::vector<Vector3> directions;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> tangents;
 	std::vector<Vector3> bitangents;

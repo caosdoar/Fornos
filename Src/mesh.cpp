@@ -33,6 +33,12 @@ SOFTWARE.
 #include <string>
 #include <tuple>
 #include <vector>
+#include <cassert>
+
+bool operator <(const Vector3 &lhs, const Vector3 &rhs)
+{
+	return std::tie(lhs.x, lhs.y, lhs.z) < std::tie(rhs.x, rhs.y, rhs.z);
+}
 
 namespace
 {
@@ -194,6 +200,7 @@ namespace
 	{
 		return std::tie(lhs.vertexIndex, lhs.texcoordIndex, lhs.normalIndex) < std::tie(rhs.vertexIndex, rhs.texcoordIndex, rhs.normalIndex);
 	}
+
 
 	template <typename T, typename E>
 	class Bitmask
@@ -366,6 +373,7 @@ Mesh* Mesh::loadWavefrontObj(const char *path)
 	mesh->normals.reserve(normals.size());
 	for (const auto &n : normals) mesh->normals.push_back(Vector3(n.i, n.j, n.k));
 
+#if 0
 	std::map<WavefrontFaceVertex, uint32_t> vertexIndices; // Shared vertices map
 	
 	for (const auto &face : faces)
@@ -409,6 +417,40 @@ Mesh* Mesh::loadWavefrontObj(const char *path)
 			}
 		}
 	}
+#else
+	for (const auto &face : faces)
+	{
+		uint32_t firstVertexIdx = UINT32_MAX;
+		uint32_t previousVertexIdx = UINT32_MAX;
+
+		for (size_t i = 0; i < face.vertexCount; ++i)
+		{
+			uint32_t vertexIdx = UINT32_MAX;
+			{
+				const auto &v = faceVertices[face.start + i];
+				const uint32_t pidx = (uint32_t)(v.vertexIndex - 1);
+				const uint32_t tidx = v.texcoordIndex != 0 ? (uint32_t)(v.texcoordIndex - 1) : UINT32_MAX;
+				const uint32_t nidx = v.normalIndex != 0 ? (uint32_t)(v.normalIndex - 1) : UINT32_MAX;
+				vertexIdx = (uint32_t)mesh->vertices.size();
+				mesh->vertices.emplace_back(Mesh::Vertex{ pidx, tidx, nidx });
+			}
+
+			if (firstVertexIdx == UINT32_MAX)
+			{
+				firstVertexIdx = vertexIdx;
+			}
+			else if (previousVertexIdx == UINT32_MAX)
+			{
+				previousVertexIdx = vertexIdx;
+			}
+			else
+			{
+				mesh->triangles.emplace_back(Mesh::Triangle{ firstVertexIdx, previousVertexIdx, vertexIdx });
+				previousVertexIdx = vertexIdx;
+			}
+		}
+	}
+#endif
 
 	return mesh;
 }
@@ -574,6 +616,14 @@ Mesh * Mesh::loadFile(const char * path)
 	return nullptr;
 }
 
+Mesh* Mesh::createCopy(const Mesh *mesh)
+{
+	assert(mesh);
+	Mesh* r = new Mesh();
+	*r = *mesh;
+	return r;
+}
+
 void Mesh::computeFaceNormals()
 {
 	normals.clear();
@@ -624,6 +674,49 @@ void Mesh::computeVertexNormals()
 	for (auto &v : vertices)
 	{
 		v.normalIndex = v.positionIndex;
+	}
+}
+
+void Mesh::computeVertexNormalsAggressive()
+{
+	struct NormalData { Vector3 normal = Vector3(); uint32_t index = 0; };
+	std::map<Vector3, NormalData> normalsMap;
+
+	auto addNormal = [&](const Vector3 &p, const Vector3 &n)
+	{
+		auto it = normalsMap.find(p);
+		if (it != normalsMap.end())
+		{
+			it->second.normal += n;
+			return it->second.index;
+		}
+		else
+		{
+			const uint32_t index = uint32_t(normalsMap.size());
+			normalsMap[p] = NormalData{ n, index };
+			return index;
+		}
+	};
+
+	for (const auto &tri : triangles)
+	{
+		auto &v0 = vertices[tri.vertexIndex0];
+		auto &v1 = vertices[tri.vertexIndex1];
+		auto &v2 = vertices[tri.vertexIndex2];
+		const Vector3 p0 = positions[v0.positionIndex];
+		const Vector3 p1 = positions[v1.positionIndex];
+		const Vector3 p2 = positions[v2.positionIndex];
+		const Vector3 n = normalize(cross(p1 - p0, p2 - p0));
+		v0.normalIndex = addNormal(p0, n);
+		v1.normalIndex = addNormal(p1, n);
+		v2.normalIndex = addNormal(p2, n);
+	}
+
+	normals.clear();
+	normals.resize(normalsMap.size());
+	for (auto &n : normalsMap)
+	{
+		normals[n.second.index] = normalize(n.second.normal);
 	}
 }
 
