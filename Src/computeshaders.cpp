@@ -103,7 +103,7 @@ GLuint LoadComputeShader_Thick_GenData()
 #if COMPUTE_SHADER_FROM_FILES
 	return CreateComputeProgram("D:\\Code\\Fornos\\Shaders\\ao_step0.comp");
 #else
-	return CreateComputeProgramFromMemory(bentnormals_step2_comp);
+	return CreateComputeProgramFromMemory(ao_step0_comp);
 #endif
 }
 
@@ -112,7 +112,7 @@ GLuint LoadComputeShader_Thick_Sampling()
 #if COMPUTE_SHADER_FROM_FILES
 	return CreateComputeProgram("D:\\Code\\Fornos\\Shaders\\thick_step1.comp");
 #else
-	return CreateComputeProgramFromMemory(ao_step0_comp);
+	return CreateComputeProgramFromMemory(thick_step1_comp);
 #endif
 }
 
