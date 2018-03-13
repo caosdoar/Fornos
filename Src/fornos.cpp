@@ -124,6 +124,27 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 			params.shared.texWidth,
 			params.shared.texHeight));
 	} break;
+
+	case MeshMappingMethod::Hybrid:
+	{
+		std::shared_ptr<Mesh> lowPolyMeshForMapping;
+		if (params.shared.loPolyMeshNormal != NormalImport::ComputePerVertex)
+		{
+			lowPolyMeshForMapping = std::shared_ptr<Mesh>(Mesh::createCopy(lowPolyMesh.get()));
+			lowPolyMeshForMapping->computeVertexNormalsAggressive();
+		}
+		else
+		{
+			lowPolyMeshForMapping = lowPolyMesh;
+		}
+
+		map = std::shared_ptr<MapUV>(MapUV::fromMeshes_Hybrid(
+			lowPolyMesh.get(),
+			lowPolyMeshForMapping.get(),
+			params.shared.texWidth,
+			params.shared.texHeight,
+			params.shared.mappingEdge));
+	} break;
 	}
 	
 	if (!map)
@@ -141,7 +162,7 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 	if (params.thickness.enabled)
 	{
 		ThicknessSolver::Params solverParams;
-		solverParams.sampleCount = (uint32_t)params.thickness.enabled;
+		solverParams.sampleCount = (uint32_t)params.thickness.sampleCount;
 		solverParams.minDistance = params.thickness.minDistance;
 		solverParams.maxDistance = params.thickness.maxDistance;
 		std::unique_ptr<ThicknessSolver> solver(new ThicknessSolver(solverParams));

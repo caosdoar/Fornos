@@ -32,7 +32,7 @@ SOFTWARE.
 #include <cstdlib>
 
 static const char* normalImportNames[3] = { "Import", "Compute per face", "Compute per vertex" };
-static const char* meshMappingMethodNames[2] = { "Smooth", "Low-poly normals" };
+static const char* meshMappingMethodNames[3] = { "Smooth", "Low-poly normals", "Hybrid" };
 
 inline void SetupImGuiStyle(bool bStyleDark_, float alpha_)
 {
@@ -362,10 +362,16 @@ void FornosParameters_Shared_View::render(int windowWidth, int windowHeight)
 		"This value is the distance (in pixels) for searching a pixel with data to use.\n"
 		"A value of zero will produce no dilation.");
 
-	parameter<MeshMappingMethod>("Mapping method", &data->mapping, meshMappingMethodNames, 2, "#meshMapping",
+	parameter<MeshMappingMethod>("Mapping method", &data->mapping, meshMappingMethodNames, 3, "#meshMapping",
 		"How rays are generated to map the low-poly mesh to the high-poly mesh.\n"
 		"Smooth creates continuous direction for the rays.\n"
 		"Low-poly normals uses the normal direction imported or computed for the low-poly mesh");
+
+	if (data->mapping == MeshMappingMethod::Hybrid)
+	{
+		parameter("Mapping edge", &data->mappingEdge, "##mappingEdge",
+			"Distance to sharp edges to start auto smoothing for mesh mapping");
+	}
 
 	parameter("Ignore backfaces", &data->ignoreBackfaces, "##ignoreBackface",
 		"If checked faces on the oposite direction to the mesh-mapping rays will be ignored during mesh mapping.");

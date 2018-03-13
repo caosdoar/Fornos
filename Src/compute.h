@@ -237,6 +237,7 @@ struct MapUV
 	/// @param height Map height
 	static MapUV* fromMesh(const Mesh *mesh, uint32_t width, uint32_t height);
 	static MapUV* fromMeshes(const Mesh *mesh, const Mesh *meshDirs, uint32_t width, uint32_t height);
+	static MapUV* fromMeshes_Hybrid(const Mesh *mesh, const Mesh *meshDirs, uint32_t width, uint32_t height, float edge);
 };
 
 /// MapUV without any pixels with no data
