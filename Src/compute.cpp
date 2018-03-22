@@ -122,12 +122,12 @@ namespace
 			d2 = meshForMapping->normals[mv2.normalIndex];
 		}
 
-		const Vector3 t0 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex0];
-		const Vector3 t1 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex1];
-		const Vector3 t2 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex2];
-		const Vector3 b0 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex0];
-		const Vector3 b1 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex1];
-		const Vector3 b2 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex2];
+		const Vector3 t0 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[v0.normalIndex];
+		const Vector3 t1 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[v1.normalIndex];
+		const Vector3 t2 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[v2.normalIndex];
+		const Vector3 b0 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[v0.normalIndex];
+		const Vector3 b1 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[v1.normalIndex];
+		const Vector3 b2 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[v2.normalIndex];
 
 		// Note: Surely not the fastest algorithm
 		const Vector2 u01 = (u0 - halfpix) * scale;
@@ -261,12 +261,12 @@ namespace
 			d2 = meshForMapping->normals[mv2.normalIndex];
 		}
 
-		const Vector3 t0 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex0];
-		const Vector3 t1 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex1];
-		const Vector3 t2 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[tri.vertexIndex2];
-		const Vector3 b0 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex0];
-		const Vector3 b1 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex1];
-		const Vector3 b2 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[tri.vertexIndex2];
+		const Vector3 t0 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[v0.normalIndex];
+		const Vector3 t1 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[v1.normalIndex];
+		const Vector3 t2 = mesh->tangents.empty() ? Vector3(0) : mesh->tangents[v2.normalIndex];
+		const Vector3 b0 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[v0.normalIndex];
+		const Vector3 b1 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[v1.normalIndex];
+		const Vector3 b2 = mesh->tangents.empty() ? Vector3(0) : mesh->bitangents[v2.normalIndex];
 
 		// Note: Surely not the fastest algorithm
 		const Vector2 u01 = (u0 - halfpix) * scale;
