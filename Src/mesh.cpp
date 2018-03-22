@@ -764,7 +764,6 @@ void Mesh::computeTangentSpace()
 		const Vector3 t2 = bitangents[i];
 		tangents[i] = normalize(t1 - n * dot(n, t1));
 		bitangents[i] = cross(n, tangents[i]);
-		if (dot(cross(n, t1), t2) < 0.0f) bitangents[i] = -bitangents[i];
 	}
 }
 
