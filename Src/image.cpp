@@ -185,7 +185,7 @@ void dilateRGB(uint8_t *data, const CompressedMapUV *map, const std::vector<bool
 	logDebug("Image", "Image dilation took " + std::to_string(timing.elapsedSeconds()) + " seconds.");
 }
 
-void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize, int dilate, Vector2 *o_minmax)
+void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, Vector2 filterRange, bool normalize, int dilate, Vector2 *o_minmax)
 {
 	assert(data);
 	assert(map);
@@ -198,21 +198,32 @@ void exportFloatImage(const float *data, const CompressedMapUV *map, const char 
 	const size_t w = map->width;
 	const size_t h = map->height;
 
-	const Vector2 minmax = getMinMax(data, count);
+	const bool filter = filterRange.y > filterRange.x;
+
+	const Vector2 texminmax = getMinMax(data, count);
+	const Vector2 minmax =
+		filter ?
+		Vector2(std::fmaxf(texminmax.x, filterRange.x), std::fminf(texminmax.y, filterRange.y)) :
+		texminmax;
 	if (o_minmax) *o_minmax = minmax;
 	const Vector2 scaleBias = computeScaleBias(minmax, normalize);
 
 	if (ext == Extension::Png || ext == Extension::Tga)
 	{
-		// TODO: Unnormalized quantized data is not a great option...
-		//if (!normalize) return Vector2();
+		// Unnormalized quantized data is not a great option...
+		if (!normalize)
+		{
+			logWarning("Image", "Forced value normalization as a non float texture format is used");
+		}
 
 		uint8_t *rgb = new uint8_t[w * h * 3];
 		memset(rgb, 0, sizeof(uint8_t) * w * h * 3);
 		for (size_t i = 0; i < count; ++i)
 		{
 			const float d = data[i];
-			const float t = d * scaleBias.x + scaleBias.y;
+			//const float df = filter ? std::fminf(std::fmaxf(d, filterRange.x), filterRange.y) : d;
+			const float df = filter && (d < filterRange.x || d > filterRange.y) ? 0 : d;
+			const float t = df * scaleBias.x + scaleBias.y;
 			const uint8_t c = (uint8_t)(std::min(std::max(t, 0.0f), 1.0f) * 255.0f);
 			const size_t index = map->indices[i];
 			const size_t x = index % w;
@@ -247,7 +258,8 @@ void exportFloatImage(const float *data, const CompressedMapUV *map, const char 
 		for (size_t i = 0; i < count; ++i)
 		{
 			const float d = data[i];
-			const float t = d * scaleBias.x + scaleBias.y;
+			const float df = filter ? std::fminf(std::fmaxf(d, filterRange.x), filterRange.y) : d;
+			const float t = normalize ? df * scaleBias.x + scaleBias.y : df;
 			const size_t index = map->indices[i];
 			const size_t x = index % w;
 			const size_t y = index / w;

@@ -106,7 +106,14 @@ void HeightTask::finish()
 	float *results = _solver->getResults();
 	auto map = _solver->uvMap();
 	Vector2 minmax;
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, _dilation, &minmax);
+	exportFloatImage(
+		results,
+		_solver->uvMap().get(),
+		_outputPath.c_str(),
+		Vector2(0, _solver->parameters().maxDistance),
+		_solver->parameters().normalizeOutput, 
+		_dilation, 
+		&minmax);
 	delete[] results;
 	logDebug("Height", "Height map range: " + std::to_string(minmax.x) + " to " + std::to_string(minmax.y));
 }

@@ -221,7 +221,10 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 
 	if (params.height.enabled)
 	{
-		std::unique_ptr<HeightSolver> solver(new HeightSolver());
+		HeightSolver::Params solverParams;
+		solverParams.maxDistance = params.height.maxDistance;
+		solverParams.normalizeOutput = params.height.normalizeOutput;
+		std::unique_ptr<HeightSolver> solver(new HeightSolver(solverParams));
 		solver->init(compressedMap, meshMapping);
 		_tasks.emplace_back(
 			new HeightTask(std::move(solver), params.height.outputPath.c_str(), params.shared.texDilation)

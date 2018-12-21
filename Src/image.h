@@ -23,11 +23,16 @@ SOFTWARE.
 
 #pragma once
 
-struct CompressedMapUV;
-struct Vector2;
-struct Vector3;
+#include "math.h"
 
-void exportFloatImage(const float *data, const CompressedMapUV *map, const char *path, bool normalize = false, int dilate = 0, Vector2 *o_minmax = nullptr);
+struct CompressedMapUV;
+
+void exportFloatImage(
+	const float *data, const CompressedMapUV *map, const char *path,
+	const Vector2 filterRange = Vector2(0, 0),
+	bool normalize = false,
+	int dilate = 0, 
+	Vector2 *o_minmax = nullptr);
 
 /// Export raw 3-channel-float data
 /// Only EXR files supported here!

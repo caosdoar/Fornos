@@ -419,6 +419,12 @@ void FornosParameters_SolverHeight_View::render(int windowWidth, int windowHeigh
 			"Height Map", ".png;.tga;.exr",
 			windowWidth, windowHeight);
 
+		parameter("Normalize output", &data->normalizeOutput, "##heightNormalizeOutput",
+			"Normalizes the texture output (values between 0 and 1)");
+
+		parameter("Max distance", &data->maxDistance, "##heightMaxDistance",
+			"Max distance to consider occluders.");
+
 		parameters_end();
 
 		if (!data->enabled)

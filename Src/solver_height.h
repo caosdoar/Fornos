@@ -34,7 +34,14 @@ class MeshMapping;
 class HeightSolver
 {
 public:
-	HeightSolver() {}
+	struct Params
+	{
+		bool normalizeOutput;
+		float maxDistance;
+	};
+
+public:
+	HeightSolver(const Params &params) : _params(params) {}
 
 	void init(std::shared_ptr<const CompressedMapUV> map, std::shared_ptr<MeshMapping> mesh);
 	bool runStep();
@@ -44,7 +51,10 @@ public:
 
 	inline std::shared_ptr<const CompressedMapUV> uvMap() const { return _uvMap; }
 
+	inline const Params& parameters() const { return _params; }
+
 private:
+	Params _params;
 	size_t _workOffset;
 	size_t _workCount;
 

@@ -159,7 +159,7 @@ void ThicknessTask::finish()
 	assert(_solver);
 	float *results = _solver->getResults();
 	Vector2 minmax;
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, _dilation, &minmax);
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), Vector2(0, 0), true, _dilation, &minmax);
 	delete[] results;
 	logDebug("Thickness", "Thickness map range: " + std::to_string(minmax.x) + " to " + std::to_string(minmax.y));
 }
