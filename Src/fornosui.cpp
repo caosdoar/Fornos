@@ -821,7 +821,8 @@ void FornosUI_Impl::renderParameters(int windowWidth, int windowHeight)
 		_params.positions.ready() ||
 		_params.normals.ready() ||
 		_params.ao.ready() ||
-		_params.thickness.ready();
+		_params.thickness.ready() ||
+		_params.bentNormals.ready();
 
 	if (!readyToBake)
 	{
