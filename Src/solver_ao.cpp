@@ -158,7 +158,7 @@ void AmbientOcclusionTask::finish()
 {
 	assert(_solver);
 	float *results = _solver->getResults();
-	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), true, _dilation); // TODO: Normalize
+	exportFloatImage(results, _solver->uvMap().get(), _outputPath.c_str(), Vector2(0,0), true, _dilation); // TODO: Normalize
 	delete[] results;
 }
 
