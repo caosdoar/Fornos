@@ -85,8 +85,8 @@ bool FornosRunner::start(const FornosParameters &params, std::string &errors)
 	}
 
 	const bool needsTangentSpace = 
-		params.normals.enabled && params.normals.tangentSpace||
-		params.bentNormals.enabled && params.bentNormals.tangentSpace;
+		(params.normals.enabled && params.normals.tangentSpace) ||
+		(params.bentNormals.enabled && params.bentNormals.tangentSpace);
 
 	if (needsTangentSpace)
 	{

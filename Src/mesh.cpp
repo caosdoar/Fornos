@@ -577,9 +577,9 @@ Mesh* Mesh::loadPly(const char *path)
 
 		for (size_t i = 0; i < tricount; ++i)
 		{
-			const uint32_t vstart = mesh->vertices.size();
+			const uint32_t vstart = (uint32_t)mesh->vertices.size();
 
-			if (normalsFrom == NormalsFrom::Face) { normal_idx = i * 3; }
+			if (normalsFrom == NormalsFrom::Face) { normal_idx = (uint32_t)i * 3; }
 
 			for (size_t j = 0; j < 3; ++j)
 			{
@@ -725,8 +725,8 @@ void Mesh::computeTangentSpace()
 {
 	tangents.clear();
 	bitangents.clear();
-	tangents.resize(normals.size());
-	bitangents.resize(normals.size());
+	tangents.resize(vertices.size());
+	bitangents.resize(vertices.size());
 
 	for (const auto &tri : triangles)
 	{
@@ -749,17 +749,17 @@ void Mesh::computeTangentSpace()
 		const Vector3 sdir = (e0 * t1.y - e1 * t0.y) * r;
 		const Vector3 tdir = (e1 * t0.x - e0 * t1.x) * r;
 
-		tangents[v0.normalIndex] += sdir;
-		tangents[v1.normalIndex] += sdir;
-		tangents[v2.normalIndex] += sdir;
-		bitangents[v0.normalIndex] += tdir;
-		bitangents[v1.normalIndex] += tdir;
-		bitangents[v2.normalIndex] += tdir;
+		tangents[tri.vertexIndex0] += sdir;
+		tangents[tri.vertexIndex1] += sdir;
+		tangents[tri.vertexIndex2] += sdir;
+		bitangents[tri.vertexIndex0] += tdir;
+		bitangents[tri.vertexIndex1] += tdir;
+		bitangents[tri.vertexIndex2] += tdir;
 	}
 
-	for (size_t i = 0; i < tangents.size(); ++i)
+	for (size_t i = 0; i < vertices.size(); ++i)
 	{
-		const Vector3 n = normals[i];
+		const Vector3 n = normals[vertices[i].normalIndex];
 		const Vector3 t1 = tangents[i];
 		const Vector3 t2 = bitangents[i];
 		tangents[i] = normalize(t1 - n * dot(n, t1));
